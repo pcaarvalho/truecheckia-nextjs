@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/hooks/auth/use-auth"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -152,6 +153,9 @@ const Header = () => {
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
             <>
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
               {/* Credits placeholder - will be replaced with CreditTracker */}
               <div className="text-sm text-muted-foreground">
                 Credits: {user?.credits || 0}
@@ -232,6 +236,9 @@ const Header = () => {
             </>
           ) : (
             <>
+              {/* Theme Toggle for non-authenticated users */}
+              <ThemeToggle />
+              
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -284,6 +291,11 @@ const Header = () => {
                         </span>
                       )}
                     </div>
+                  </div>
+                  
+                  {/* Theme Toggle */}
+                  <div className="flex justify-start mb-4">
+                    <ThemeToggle />
                   </div>
                   
                   {/* Credits */}
@@ -366,8 +378,13 @@ const Header = () => {
                     </a>
                   ))}
                   
+                  {/* Theme Toggle */}
+                  <div className="flex justify-start pt-4 border-t border-border/50 mb-4">
+                    <ThemeToggle />
+                  </div>
+                  
                   {/* Auth Buttons */}
-                  <div className="flex flex-col space-y-3 pt-4 border-t border-border/50">
+                  <div className="flex flex-col space-y-3">
                     <Button 
                       variant="ghost" 
                       onClick={() => {
