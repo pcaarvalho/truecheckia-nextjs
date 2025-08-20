@@ -100,7 +100,7 @@ export default function RegisterPage() {
       console.error('[RegisterPage] Registration error:', error)
       
       let errorMessage = 'Registration failed. Please try again.'
-      let title = 'Registration failed'
+      const title = 'Registration failed'
       
       if (error.message) {
         errorMessage = error.message

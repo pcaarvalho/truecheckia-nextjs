@@ -20,8 +20,8 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       error: {
-        message: error.message,
-        name: error.name
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'Error'
       }
     }, { status: 500 })
   }
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: {
-        message: error.message,
-        name: error.name
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'Error'
       }
     }, { status: 500 })
   }
