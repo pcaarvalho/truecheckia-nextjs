@@ -17,6 +17,12 @@ export default function MarketingLayout({
             <span className="text-xl font-bold">TrueCheck-AI</span>
           </Link>
 
+          <div className="hidden md:flex items-center space-x-6">
+            <Link href="/pricing" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+              Preços
+            </Link>
+          </div>
+
           <div className="flex items-center space-x-4">
             <Button variant="ghost" asChild>
               <Link href="/login">
@@ -55,7 +61,7 @@ export default function MarketingLayout({
               <h3 className="font-semibold mb-4">Produto</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="#" className="hover:text-white">Funcionalidades</Link></li>
-                <li><Link href="#" className="hover:text-white">Preços</Link></li>
+                <li><Link href="/pricing" className="hover:text-white">Preços</Link></li>
                 <li><Link href="#" className="hover:text-white">API</Link></li>
               </ul>
             </div>

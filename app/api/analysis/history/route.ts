@@ -8,8 +8,8 @@ async function getAnalysisHistoryHandler(request: NextRequest): Promise<NextResp
 
   // Get query parameters for pagination
   const url = new URL(request.url)
-  const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50)
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'))
+  const limit = Math.min(Math.max(1, parseInt(url.searchParams.get('limit') || '20')), 50)
   const skip = (page - 1) * limit
 
   // Get user's analysis history
