@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                         String    @id @default(cuid())
+  email                      String    @unique
+  name                       String?
+  password                   String
+  role                       Role      @default(USER)
+  plan                       Plan      @default(FREE)
+  credits                    Int       @default(10)
+  creditsResetAt             DateTime  @default(now())
+  emailVerified              Boolean   @default(false)
+  emailVerificationToken     String?
+  emailVerificationExpires   DateTime?
+  passwordResetToken         String?
+  passwordResetExpires       DateTime?
+  avatar                     String?
+  apiKey                     String?
+  stripeCustomerId           String?
+  stripeSubscriptionId       String?
+  stripeCurrentPeriodEnd     DateTime?
+  stripeCancelAtPeriodEnd    Boolean   @default(false)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  // Relations
+  analyses                   Analysis[]
+  subscriptions              Subscription[]
+
+  // @@map("users")
+}
+
+model Analysis {
+  id              String      @id @default(cuid())
+  userId          String
+  text            String
+  language        String      @default("pt")
+  aiScore         Float
+  confidence      Confidence
+  isAiGenerated   Boolean
+  indicators      Json
+  explanation     String
+  suspiciousParts Json
+  processingTime  Int
+  wordCount       Int
+  charCount       Int
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // @@map("analyses")
+}
+
+model Subscription {
+  id                  String   @id @default(cuid())
+  userId              String
+  stripeSubscriptionId String  @unique
+  stripePriceId       String
+  status              String
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // @@map("subscriptions")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Confidence {
+  LOW
+  MEDIUM
+  HIGH
+}
