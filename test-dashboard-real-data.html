@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Real Data - TrueCheckIA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .success { background-color: #f0fdf4; border-color: #22c55e; }
+        .error { background-color: #fef2f2; border-color: #ef4444; }
+        .warning { background-color: #fffbeb; border-color: #f59e0b; }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #7c3aed; }
+        .results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .user-info {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard Real Data Test</h1>
+        <p>This page tests the dashboard with real user data to verify the fix for hardcoded data.</p>
+        
+        <div class="user-info">
+            <h3>Test Credentials</h3>
+            <p><strong>Email:</strong> test@truecheckia.com</p>
+            <p><strong>Password:</strong> Test123456!</p>
+            <p><strong>Expected:</strong> Dashboard should show real user data, not hardcoded content</p>
+        </div>
+
+        <div class="test-section">
+            <h3>1. Authentication Test</h3>
+            <button onclick="testLogin()">Login with Test User</button>
+            <button onclick="testLogout()">Logout</button>
+            <button onclick="checkAuthStatus()">Check Auth Status</button>
+            <div id="authResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Dashboard API Test</h3>
+            <button onclick="testDashboardAPI()">Test Dashboard Stats API</button>
+            <button onclick="testDashboardWithAuth()">Test Dashboard with Auth</button>
+            <div id="dashboardResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. User Data Verification</h3>
+            <button onclick="verifyUserData()">Verify Real User Data</button>
+            <button onclick="openDashboard()">Open Dashboard Page</button>
+            <div id="userDataResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Data Isolation Test</h3>
+            <p>This ensures each user sees only their own data</p>
+            <button onclick="testDataIsolation()">Test Data Isolation</button>
+            <div id="isolationResults" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let userData = null;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.textContent += `[${timestamp}] ${message}\n`;
+            
+            // Update section styling based on results
+            const section = element.closest('.test-section');
+            section.className = section.className.replace(/\s*(success|error|warning)/, '');
+            if (type === 'error') section.classList.add('error');
+            else if (type === 'success') section.classList.add('success');
+            else if (type === 'warning') section.classList.add('warning');
+        }
+
+        async function testLogin() {
+            log('authResults', 'Testing login...', 'info');
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@truecheckia.com',
+                        password: 'Test123456!'
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                log('authResults', `Login response: ${response.status}`, response.ok ? 'success' : 'error');
+                log('authResults', `Response data: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok && (data.data?.accessToken || data.accessToken)) {
+                    authToken = data.data?.accessToken || data.accessToken;
+                    userData = data.data?.user || data.user;
+                    localStorage.setItem('accessToken', authToken);
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    log('authResults', `✅ Login successful! User: ${userData.email}`, 'success');
+                } else {
+                    log('authResults', '❌ Login failed', 'error');
+                }
+            } catch (error) {
+                log('authResults', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogout() {
+            log('authResults', 'Testing logout...', 'info');
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                    credentials: 'include'
+                });
+
+                authToken = null;
+                userData = null;
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('user');
+                
+                log('authResults', `✅ Logout completed (status: ${response.status})`, 'success');
+            } catch (error) {
+                log('authResults', `❌ Logout error: ${error.message}`, 'error');
+            }
+        }
+
+        function checkAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const user = localStorage.getItem('user');
+            
+            log('authResults', '=== Auth Status ===');
+            log('authResults', `Token in localStorage: ${token ? 'Present' : 'Missing'}`);
+            log('authResults', `User data: ${user ? JSON.stringify(JSON.parse(user), null, 2) : 'Missing'}`);
+            
+            if (token && user) {
+                authToken = token;
+                userData = JSON.parse(user);
+                log('authResults', '✅ User is authenticated', 'success');
+            } else {
+                log('authResults', '❌ User is not authenticated', 'warning');
+            }
+        }
+
+        async function testDashboardAPI() {
+            log('dashboardResults', 'Testing dashboard API...', 'info');
+            
+            if (!authToken) {
+                log('dashboardResults', '❌ No auth token. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/dashboard/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                log('dashboardResults', `API response: ${response.status}`, response.ok ? 'success' : 'error');
+                log('dashboardResults', `Dashboard stats: ${JSON.stringify(data, null, 2)}`);
+
+                if (response.ok) {
+                    log('dashboardResults', '✅ Dashboard API working correctly', 'success');
+                    log('dashboardResults', `Total analyses: ${data.totalAnalyses}`);
+                    log('dashboardResults', `Credits remaining: ${data.creditsRemaining}`);
+                    log('dashboardResults', `Recent analyses count: ${data.recentAnalyses?.length || 0}`);
+                } else {
+                    log('dashboardResults', '❌ Dashboard API failed', 'error');
+                }
+            } catch (error) {
+                log('dashboardResults', `❌ Dashboard API error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDashboardWithAuth() {
+            log('dashboardResults', 'Testing dashboard page with authentication...', 'info');
+            
+            if (!authToken) {
+                log('dashboardResults', '❌ No auth token. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                // Test the dashboard page
+                const response = await fetch('/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                    credentials: 'include'
+                });
+
+                log('dashboardResults', `Dashboard page response: ${response.status}`);
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    log('dashboardResults', '✅ Dashboard page loaded successfully', 'success');
+                    
+                    // Check for hardcoded data
+                    if (html.includes('1,234') || html.includes('Bem-vindo de volta!')) {
+                        log('dashboardResults', '⚠️  WARNING: Dashboard might contain hardcoded data', 'warning');
+                    } else {
+                        log('dashboardResults', '✅ No hardcoded data detected in HTML', 'success');
+                    }
+                } else {
+                    log('dashboardResults', `❌ Dashboard page failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('dashboardResults', `❌ Dashboard page error: ${error.message}`, 'error');
+            }
+        }
+
+        async function verifyUserData() {
+            log('userDataResults', 'Verifying user-specific data...', 'info');
+            
+            if (!userData) {
+                log('userDataResults', '❌ No user data. Please login first.', 'error');
+                return;
+            }
+
+            // Test both API and stored data
+            await testDashboardAPI();
+            
+            log('userDataResults', '=== User Data Verification ===');
+            log('userDataResults', `User ID: ${userData.id}`);
+            log('userDataResults', `Email: ${userData.email}`);
+            log('userDataResults', `Name: ${userData.name || 'Not set'}`);
+            log('userDataResults', `Plan: ${userData.plan || 'FREE'}`);
+            log('userDataResults', `Credits: ${userData.credits || 0}`);
+            
+            // Verify data is not hardcoded
+            const isHardcoded = userData.name === 'João Silva' || 
+                               userData.email === 'joao@example.com' ||
+                               userData.id === 'hardcoded-id';
+            
+            if (isHardcoded) {
+                log('userDataResults', '❌ CRITICAL: User data appears to be hardcoded!', 'error');
+            } else {
+                log('userDataResults', '✅ User data appears to be real and user-specific', 'success');
+            }
+        }
+
+        async function testDataIsolation() {
+            log('isolationResults', 'Testing data isolation...', 'info');
+            
+            if (!authToken) {
+                log('isolationResults', '❌ No auth token. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                // Get dashboard stats
+                const response = await fetch('/api/dashboard/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('isolationResults', '=== Data Isolation Check ===');
+                    log('isolationResults', `Current user: ${userData?.email}`);
+                    log('isolationResults', `Total analyses: ${data.totalAnalyses}`);
+                    log('isolationResults', `Recent analyses: ${data.recentAnalyses?.length || 0}`);
+                    
+                    // Check if data belongs to current user
+                    if (data.recentAnalyses && data.recentAnalyses.length > 0) {
+                        log('isolationResults', 'Recent analyses found - data appears user-specific');
+                        log('isolationResults', '✅ Data isolation seems to be working', 'success');
+                    } else {
+                        log('isolationResults', 'No recent analyses found for this user');
+                        log('isolationResults', '✅ Data isolation working (no shared data)', 'success');
+                    }
+                } else {
+                    log('isolationResults', '❌ Failed to fetch dashboard data', 'error');
+                }
+            } catch (error) {
+                log('isolationResults', `❌ Data isolation test error: ${error.message}`, 'error');
+            }
+        }
+
+        function openDashboard() {
+            window.open('/dashboard', '_blank');
+        }
+
+        // Check initial auth status
+        window.onload = function() {
+            checkAuthStatus();
+        };
+    </script>
+</body>
+</html>

@@ -1,252 +1,348 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/hooks/auth/use-auth'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/lib/auth/auth-context';
 import { 
-  BarChart3, 
+  TrendingUp, 
   FileText, 
-  CreditCard, 
-  Settings, 
-  LogOut, 
-  Search,
-  History,
-  User,
-  Sparkles
-} from 'lucide-react'
-import { toast } from 'sonner'
-import Header from '@/components/layout/header/header'
+  Clock, 
+  Shield,
+  Zap,
+  Activity,
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
+
+// Custom hook for dashboard stats
+function useDashboardStats() {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard stats');
+      }
+      
+      return response.json();
+    },
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+function formatRelativeTime(dateString: string | null): string {
+  if (!dateString) return 'Never';
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  
+  return date.toLocaleDateString();
+}
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const { user } = useAuth();
+  const { data: dashboardData, isLoading, error, refetch } = useDashboardStats();
   
-  const [stats, setStats] = useState({
-    totalAnalysis: 0,
-    creditsRemaining: user?.credits || 10,
-    plan: user?.plan || 'FREE',
-    lastAnalysis: null
-  })
-
-  useEffect(() => {
-    // Update stats from user data (no API call needed)
-    if (user) {
-      setStats(prev => ({
-        ...prev,
-        creditsRemaining: user.credits || 0,
-        plan: user.plan || 'FREE'
-      }))
-    }
-    
-    // Handle checkout success/cancellation
-    const success = searchParams.get('success')
-    const canceled = searchParams.get('canceled')
-    
-    if (success === 'true') {
-      // Show success modal or toast
-      toast.success('Checkout successful!', {
-        description: 'Your subscription has been activated.',
-      })
-      setTimeout(() => {
-        // Remove the URL parameter to avoid showing again
-        window.history.replaceState({}, '', '/dashboard')
-      }, 100)
-    } else if (canceled === 'true') {
-      // Show cancellation feedback
-      toast.info('Checkout canceled', {
-        description: 'No charges were made.',
-      })
-      setTimeout(() => {
-        window.history.replaceState({}, '', '/dashboard')
-      }, 100)
-    }
-  }, [searchParams, user])
-
-  const handleLogout = async () => {
-    await logout()
-    router.push('/')
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
-
-  const navigateToAnalysis = () => {
-    router.push('/analysis')
+  
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <p className="text-gray-600 dark:text-gray-400">Failed to load dashboard data</p>
+              <Button onClick={() => refetch()} variant="outline">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
+  
+  // Prepare stats from API data
+  const stats = [
+    {
+      title: 'Total Analyses',
+      value: dashboardData?.totalAnalyses?.toLocaleString() || '0',
+      icon: FileText,
+      trend: dashboardData?.weeklyGrowth > 0 ? `+${dashboardData.weeklyGrowth}%` : dashboardData?.weeklyGrowth < 0 ? `${dashboardData.weeklyGrowth}%` : null,
+      color: 'from-blue-500 to-purple-600',
+    },
+    {
+      title: 'Credits Remaining',
+      value: dashboardData?.creditsRemaining?.toLocaleString() || '0',
+      icon: Sparkles,
+      subtitle: user?.plan || 'FREE',
+      color: 'from-purple-500 to-pink-600',
+    },
+    {
+      title: 'Average AI Score',
+      value: dashboardData?.avgAiProbability ? `${dashboardData.avgAiProbability}%` : 'N/A',
+      icon: Shield,
+      subtitle: 'Detection accuracy',
+      color: 'from-green-500 to-emerald-600',
+    },
+    {
+      title: 'Last Analysis',
+      value: formatRelativeTime(dashboardData?.lastAnalysisAt),
+      icon: Clock,
+      subtitle: 'Recent activity',
+      color: 'from-orange-500 to-red-600',
+    },
+  ];
 
-  const navigateToHistory = () => {
-    router.push('/history')
-  }
-
-  const navigateToProfile = () => {
-    router.push('/profile')
-  }
-
-  const navigateToSubscription = () => {
-    router.push('/subscription')
-  }
+  const quickActions = [
+    {
+      title: 'Text Analysis',
+      description: 'Check if text was generated by AI',
+      icon: FileText,
+      gradient: 'from-blue-600 to-purple-600',
+      href: '/analysis',
+    },
+    {
+      title: 'URL Analysis',
+      description: 'Analyze content from a web page',
+      icon: Zap,
+      gradient: 'from-purple-600 to-pink-600',
+      href: '/analysis',
+    },
+    {
+      title: 'File Upload',
+      description: 'Upload documents for analysis',
+      icon: Sparkles,
+      gradient: 'from-green-600 to-emerald-600',
+      href: '/analysis',
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">
-      <Header />
-      
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to TrueCheckIA
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto" data-testid="dashboard-content">
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            Welcome back{user?.name ? `, ${user.name}` : ''}!
           </h1>
-          <p className="text-gray-600">
-            Detect AI-generated content with precision and confidence
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Ready to analyze more content today?
           </p>
-        </div>
+        </motion.div>
 
-        {/* Email Verification Banner - TODO: Implement EmailVerificationBanner */}
-        {user && !user.emailVerified && (
-          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800">
-              Please verify your email address to access all features.
-            </p>
-          </div>
-        )}
-
-        {/* Credit Alert - TODO: Implement CreditAlert */}
-        {user && user.credits !== undefined && user.credits < 5 && (
-          <div className="mb-6 p-4 bg-orange-100 border border-orange-200 rounded-lg">
-            <p className="text-orange-800">
-              You have {user.credits} credits remaining. Consider upgrading your plan.
-            </p>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Credits Remaining
-              </CardTitle>
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {user?.credits !== undefined ? user.credits : '---'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Plan: {user?.plan || 'FREE'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Analyses Completed
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAnalysis}</div>
-              <p className="text-xs text-muted-foreground">
-                Total history
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Account Status
-              </CardTitle>
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Active</div>
-              <p className="text-xs text-muted-foreground">
-                Account {user?.emailVerified ? 'verified' : 'pending verification'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Stats Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                <Card className="relative overflow-hidden bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-5`} />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      {stat.title}
+                    </CardTitle>
+                    <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} bg-opacity-10`}>
+                      <Icon className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </div>
+                    {stat.trend && (
+                      <p className={`text-xs mt-1 ${
+                        stat.trend.startsWith('+') 
+                          ? 'text-green-600 dark:text-green-400' 
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {stat.trend} vs last week
+                      </p>
+                    )}
+                    {stat.subtitle && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {stat.subtitle}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={navigateToAnalysis}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <Search className="h-8 w-8 text-purple-600" />
-              </div>
-              <CardTitle className="text-lg">New Analysis</CardTitle>
-              <CardDescription>
-                Check if text was generated by AI
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={navigateToHistory}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <History className="h-8 w-8 text-indigo-600" />
-              </div>
-              <CardTitle className="text-lg">History</CardTitle>
-              <CardDescription>
-                View previous analyses
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={navigateToProfile}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <User className="h-8 w-8 text-blue-600" />
-              </div>
-              <CardTitle className="text-lg">My Profile</CardTitle>
-              <CardDescription>
-                Manage personal data
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={navigateToSubscription}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CreditCard className="h-8 w-8 text-green-600" />
-              </div>
-              <CardTitle className="text-lg">Subscription</CardTitle>
-              <CardDescription>
-                Manage plan and payments
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-8"
+        >
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <motion.div
+                  key={action.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                >
+                  <Card className="group cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`p-3 rounded-lg bg-gradient-to-r ${action.gradient} shadow-lg`}>
+                          <Icon className="h-6 w-6 text-white" />
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transform group-hover:translate-x-1 transition-all" />
+                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        {action.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {action.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* Recent Activity */}
-        {stats.lastAnalysis && (
-          <Card className="mt-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Last Analysis</CardTitle>
+              <CardTitle className="flex items-center text-gray-900 dark:text-white">
+                <Activity className="w-5 h-5 mr-2" />
+                Recent Activity
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">
-                Performed on: {new Date(stats.lastAnalysis).toLocaleString('en-US')}
-              </p>
+              <div className="space-y-4">
+                {dashboardData?.recentAnalyses && dashboardData.recentAnalyses.length > 0 ? (
+                  dashboardData.recentAnalyses.slice(0, 3).map((analysis, index) => {
+                    const colors = ['bg-green-500', 'bg-blue-500', 'bg-purple-500'];
+                    const isRecent = index === 0;
+                    return (
+                      <div key={analysis.id} className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 ${colors[index]} rounded-full ${isRecent ? 'animate-pulse' : ''}`} />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Analysis completed: {analysis.aiScore}% AI probability, {analysis.wordCount} words
+                          <span className="text-xs text-gray-500 ml-2">
+                            {formatRelativeTime(analysis.createdAt)}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      No recent activity. Start your first analysis!
+                    </span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        )}
-      </main>
+        </motion.div>
+
+        {/* CTA Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8 text-center"
+        >
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 shadow-xl">
+            <h3 className="text-2xl font-bold text-white mb-4">
+              Ready to get started?
+            </h3>
+            <p className="text-purple-100 mb-6">
+              Analyze your {dashboardData?.totalAnalyses > 0 ? 'next' : 'first'} text right now with our cutting-edge technology
+            </p>
+            <Button 
+              size="lg"
+              className="bg-white text-purple-600 hover:bg-gray-100 font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all"
+              onClick={() => window.location.href = '/analysis'}
+            >
+              Start Analysis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
     </div>
-  )
+  );
 }
