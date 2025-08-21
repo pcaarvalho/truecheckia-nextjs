@@ -1,0 +1,248 @@
+/**
+ * API Client with automatic token refresh interceptor
+ */
+
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: {
+    code: string
+    message: string
+  }
+}
+
+interface RefreshResponse {
+  accessToken: string
+  refreshToken: string
+}
+
+class ApiClient {
+  private baseURL: string
+  private isRefreshing = false
+  private failedQueue: Array<{
+    resolve: (token: string) => void
+    reject: (error: any) => void
+  }> = []
+
+  constructor() {
+    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api'
+  }
+
+  /**
+   * Process failed requests queue after token refresh
+   */
+  private processQueue(error: any, token: string | null = null) {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve(token!)
+      }
+    })
+    
+    this.failedQueue = []
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  private async refreshToken(): Promise<string> {
+    const refreshToken = localStorage.getItem('refreshToken')
+    
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Token refresh failed')
+      }
+
+      const data: ApiResponse<RefreshResponse> = await response.json()
+      
+      if (!data.success || !data.data) {
+        throw new Error('Invalid refresh response')
+      }
+
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data
+
+      // Update stored tokens
+      localStorage.setItem('accessToken', newAccessToken)
+      localStorage.setItem('refreshToken', newRefreshToken)
+      
+      // Update cookie for middleware
+      document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+
+      return newAccessToken
+    } catch (error) {
+      // Clear auth data on refresh failure
+      this.clearAuthData()
+      throw error
+    }
+  }
+
+  /**
+   * Clear authentication data
+   */
+  private clearAuthData() {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  }
+
+  /**
+   * Get authorization header with current token
+   */
+  private getAuthHeader(): HeadersInit {
+    const token = localStorage.getItem('accessToken')
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+  /**
+   * Make authenticated request with automatic token refresh
+   */
+  private async request<T = any>(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`
+    
+    // Add auth header
+    const headers = {
+      'Content-Type': 'application/json',
+      ...this.getAuthHeader(),
+      ...options.headers,
+    }
+
+    try {
+      const response = await fetch(fullUrl, {
+        ...options,
+        headers,
+        credentials: 'include',
+      })
+
+      // Handle 401 Unauthorized - token might be expired
+      if (response.status === 401) {
+        const token = localStorage.getItem('accessToken')
+        
+        if (!token) {
+          throw new Error('No access token')
+        }
+
+        // If already refreshing, queue this request
+        if (this.isRefreshing) {
+          return new Promise((resolve, reject) => {
+            this.failedQueue.push({
+              resolve: (newToken: string) => {
+                // Retry request with new token
+                this.request<T>(url, {
+                  ...options,
+                  headers: {
+                    ...options.headers,
+                    Authorization: `Bearer ${newToken}`,
+                  },
+                }).then(resolve).catch(reject)
+              },
+              reject,
+            })
+          })
+        }
+
+        this.isRefreshing = true
+
+        try {
+          const newToken = await this.refreshToken()
+          this.processQueue(null, newToken)
+          
+          // Retry original request with new token
+          return this.request<T>(url, {
+            ...options,
+            headers: {
+              ...options.headers,
+              Authorization: `Bearer ${newToken}`,
+            },
+          })
+        } catch (refreshError) {
+          this.processQueue(refreshError, null)
+          
+          // Redirect to login on refresh failure
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname
+            const isAuthPage = ['/login', '/register', '/forgot-password'].includes(currentPath)
+            
+            if (!isAuthPage) {
+              window.location.href = `/login?from=${encodeURIComponent(currentPath)}`
+            }
+          }
+          
+          throw refreshError
+        } finally {
+          this.isRefreshing = false
+        }
+      }
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || `HTTP ${response.status}`)
+      }
+
+      return data
+    } catch (error) {
+      console.error('API request failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * GET request
+   */
+  async get<T = any>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...options, method: 'GET' })
+  }
+
+  /**
+   * POST request
+   */
+  async post<T = any>(url: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  /**
+   * PUT request
+   */
+  async put<T = any>(url: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(url, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  /**
+   * DELETE request
+   */
+  async delete<T = any>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(url, { ...options, method: 'DELETE' })
+  }
+}
+
+// Export singleton instance
+export const apiClient = new ApiClient()
+
+// Export for direct use
+export default apiClient

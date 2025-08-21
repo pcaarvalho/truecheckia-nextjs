@@ -37,7 +37,8 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
   // Generate tokens (email verification no longer required)
   const { accessToken, refreshToken } = generateTokens(user)
 
-  return createResponse({
+  // Create response with user data and tokens
+  const response = createResponse({
     user: {
       id: user.id,
       email: user.email,
@@ -50,6 +51,25 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     accessToken,
     refreshToken,
   })
+
+  // Set secure cookies
+  response.cookies.set('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days - match JWT expiration
+    path: '/'
+  })
+
+  response.cookies.set('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/'
+  })
+
+  return response
 }
 
 // Export handlers for different HTTP methods

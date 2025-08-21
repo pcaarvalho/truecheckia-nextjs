@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { refreshAccessToken, isTokenNearExpiry } from '../app/lib/auth-client'
 
 interface User {
   id: string
@@ -75,19 +76,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const savedUser = JSON.parse(savedUserStr)
             console.log('[AuthContext] Restoring user session:', savedUser)
+            
+            // Also restore cookie for middleware - MUST match middleware check
+            document.cookie = `accessToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+            
             setUser(savedUser)
+            console.log('[AuthContext] User session restored successfully')
           } catch (e) {
             console.error('[AuthContext] Error parsing saved user:', e)
             localStorage.removeItem('user')
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
           }
+        } else {
+          console.log('[AuthContext] No stored session found')
         }
       } catch (error) {
         console.error('[AuthContext] Error initializing auth:', error)
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
+        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       } finally {
-        console.log('[AuthContext] Auth initialization complete')
         setIsLoading(false)
       }
     }
@@ -144,15 +155,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (accessToken && refreshToken && user) {
         console.log('[AuthContext] Login successful, storing tokens and user')
         
-        // Store tokens
+        // Store tokens in localStorage
         localStorage.setItem('accessToken', accessToken)
         localStorage.setItem('refreshToken', refreshToken)
         localStorage.setItem('user', JSON.stringify(user))
         
+        // Also store token in cookie for middleware
+        document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        
         // Update state
         setUser(user)
         
-        console.log('[AuthContext] Login completed successfully')
+        console.log('[AuthContext] Login completed successfully, tokens stored in both localStorage and cookies')
       } else {
         console.error('[AuthContext] Invalid login response - missing required fields:', {
           hasAccessToken: !!accessToken,
@@ -216,10 +230,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (accessToken && refreshToken && user) {
           console.log('[AuthContext] Auto-login after registration')
           
-          // Store tokens
+          // Store tokens in localStorage
           localStorage.setItem('accessToken', accessToken)
           localStorage.setItem('refreshToken', refreshToken)
           localStorage.setItem('user', JSON.stringify(user))
+          
+          // Also store token in cookie for middleware
+          document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
           
           // Update state
           setUser(user)
@@ -248,6 +265,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
+      
+      // Remove cookie as well
+      document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      
       setUser(null)
       router.push('/')
     }
@@ -257,6 +278,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser)
     localStorage.setItem('user', JSON.stringify(newUser))
   }
+
+  // Proactive token refresh
+  const refreshTokenIfNeeded = useCallback(async () => {
+    if (!user) return
+    
+    try {
+      if (isTokenNearExpiry()) {
+        console.log('[AuthContext] Token near expiry, refreshing proactively...')
+        const tokens = await refreshAccessToken()
+        
+        if (tokens) {
+          console.log('[AuthContext] Token refreshed successfully')
+        } else {
+          console.log('[AuthContext] Token refresh failed, logging out')
+          await logout()
+        }
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error in proactive token refresh:', error)
+    }
+  }, [user])
+
+  // Set up periodic token refresh check
+  useEffect(() => {
+    if (!user) return
+
+    // Check immediately
+    refreshTokenIfNeeded()
+
+    // Set up interval for periodic checks (every 30 minutes)
+    const interval = setInterval(refreshTokenIfNeeded, 30 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [user, refreshTokenIfNeeded])
 
   const value = {
     user,
