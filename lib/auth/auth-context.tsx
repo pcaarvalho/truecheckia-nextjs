@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { refreshAccessToken, isTokenNearExpiry } from '../app/lib/auth-client'
+import { refreshAccessToken, isTokenNearExpiry } from '@/app/lib/auth-client'
 
 interface User {
   id: string
@@ -77,9 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const savedUser = JSON.parse(savedUserStr)
             console.log('[AuthContext] Restoring user session:', savedUser)
             
-            // Also restore cookie for middleware - MUST match middleware check
-            document.cookie = `accessToken=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
-            
+            // Only restore user state - let httpOnly cookies from API handle auth
             setUser(savedUser)
             console.log('[AuthContext] User session restored successfully')
           } catch (e) {
@@ -87,7 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('user')
             localStorage.removeItem('accessToken')
             localStorage.removeItem('refreshToken')
-            document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
           }
         } else {
           console.log('[AuthContext] No stored session found')
@@ -97,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
-        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       } finally {
         setIsLoading(false)
       }
@@ -119,8 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Login failed')
+        let errorMessage = 'Login failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData?.message || errorData?.error || 'Login failed'
+        } catch (e) {
+          // If parsing JSON fails, use default message
+        }
+        throw new Error(errorMessage)
       }
       
       const loginData: LoginResponse = await response.json()
@@ -155,18 +157,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (accessToken && refreshToken && user) {
         console.log('[AuthContext] Login successful, storing tokens and user')
         
-        // Store tokens in localStorage
+        // Store tokens in localStorage for client state management
         localStorage.setItem('accessToken', accessToken)
         localStorage.setItem('refreshToken', refreshToken)
         localStorage.setItem('user', JSON.stringify(user))
         
-        // Also store token in cookie for middleware
-        document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
-        
-        // Update state
+        // Update state - API already set httpOnly cookies
         setUser(user)
         
-        console.log('[AuthContext] Login completed successfully, tokens stored in both localStorage and cookies')
+        console.log('[AuthContext] Login completed successfully, tokens stored in localStorage')
       } else {
         console.error('[AuthContext] Invalid login response - missing required fields:', {
           hasAccessToken: !!accessToken,
@@ -230,15 +229,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (accessToken && refreshToken && user) {
           console.log('[AuthContext] Auto-login after registration')
           
-          // Store tokens in localStorage
+          // Store tokens in localStorage for client state management
           localStorage.setItem('accessToken', accessToken)
           localStorage.setItem('refreshToken', refreshToken)
           localStorage.setItem('user', JSON.stringify(user))
           
-          // Also store token in cookie for middleware
-          document.cookie = `accessToken=${accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
-          
-          // Update state
+          // Update state - API already set httpOnly cookies
           setUser(user)
         }
         
@@ -253,22 +249,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Call logout API to clear httpOnly cookies
       await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
+        credentials: 'include', // Include cookies in request
       })
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
+      // Clear localStorage
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
       
-      // Remove cookie as well
-      document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      
+      // Clear client state
       setUser(null)
       router.push('/')
     }

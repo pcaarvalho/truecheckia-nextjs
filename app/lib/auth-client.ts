@@ -175,12 +175,9 @@ export async function refreshAccessToken(): Promise<{ accessToken: string; refre
     if (data.success && data.data) {
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data
       
-      // Update stored tokens
+      // Update stored tokens - API already handles httpOnly cookies
       localStorage.setItem('accessToken', newAccessToken)
       localStorage.setItem('refreshToken', newRefreshToken)
-      
-      // Update cookie for middleware
-      document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
       
       return {
         accessToken: newAccessToken,

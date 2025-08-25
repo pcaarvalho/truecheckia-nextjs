@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { prisma } from '../../../lib/prisma'
-import { generateTokens, hashPassword } from '../../../lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { registerSchema, type RegisterInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { generateTokens, hashPassword } from '@/lib/auth'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
+import { registerSchema, type RegisterInput } from '@/app/lib/schemas'
 
 // Free credits configuration
 const FREE_CREDITS = 10
@@ -57,7 +57,8 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
   // Generate tokens for immediate login (soft verification)
   const { accessToken, refreshToken } = generateTokens(user)
 
-  return createResponse({
+  // Create response
+  const response = createResponse({
     user: {
       id: user.id,
       email: user.email,
@@ -69,6 +70,25 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
     accessToken,
     refreshToken,
   }, true, 'Account created successfully. You can start using TrueCheckIA immediately!', 201)
+  
+  // Set secure httpOnly cookies
+  response.cookies.set('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days - match JWT expiration
+    path: '/'
+  })
+
+  response.cookies.set('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/'
+  })
+
+  return response
 }
 
 // Export handlers for different HTTP methods

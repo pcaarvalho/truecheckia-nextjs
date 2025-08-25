@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { verifyRefreshToken, generateTokens } from '../../../lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { refreshTokenSchema, type RefreshTokenInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { verifyRefreshToken, generateTokens } from '@/lib/auth'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
+import { refreshTokenSchema, type RefreshTokenInput } from '@/app/lib/schemas'
 
 async function refreshHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body
@@ -33,8 +33,28 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
 
     // Generate new tokens
     const tokens = generateTokens(user)
+    
+    // Create response
+    const response = createResponse(tokens)
+    
+    // Set secure httpOnly cookies
+    response.cookies.set('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days - match JWT expiration
+      path: '/'
+    })
 
-    return createResponse(tokens)
+    response.cookies.set('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/'
+    })
+
+    return response
   } catch (error) {
     throw new AppError('Invalid refresh token', 401, ERROR_CODES.TOKEN_EXPIRED)
   }
