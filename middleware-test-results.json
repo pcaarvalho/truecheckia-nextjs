@@ -1,0 +1,107 @@
+{
+  "timestamp": "2025-08-24T11:58:27.473Z",
+  "summary": {
+    "totalTests": 13,
+    "passedTests": 4,
+    "failedTests": 9,
+    "successRate": "30.8%"
+  },
+  "results": [
+    {
+      "test": "Homepage without auth",
+      "expected": "Status 200 (allowed)",
+      "actual": "Status 500",
+      "passed": false,
+      "details": "Homepage should be accessible to everyone"
+    },
+    {
+      "test": "Dashboard without auth",
+      "expected": "Redirect to /login (302)",
+      "actual": "Status 307, Location: /login",
+      "passed": false,
+      "details": "Protected routes should redirect unauthenticated users"
+    },
+    {
+      "test": "API route access",
+      "expected": "No redirect (not 302)",
+      "actual": "Status 500",
+      "passed": true,
+      "details": "API routes should bypass middleware"
+    },
+    {
+      "test": "Static files access",
+      "expected": "No redirect (not 302)",
+      "actual": "Status 404",
+      "passed": true,
+      "details": "Static files should bypass middleware"
+    },
+    {
+      "test": "Protected route with invalid token",
+      "expected": "Redirect to /login (302)",
+      "actual": "Status 307, Location: /login",
+      "passed": false,
+      "details": "Invalid tokens should be cleared and user redirected"
+    },
+    {
+      "test": "Analysis without auth",
+      "expected": "Redirect to /login (302)",
+      "actual": "Status 307, Location: /login",
+      "passed": false,
+      "details": "Analysis page is protected and should redirect"
+    },
+    {
+      "test": "History without auth",
+      "expected": "Redirect to /login (302)",
+      "actual": "Status 307, Location: /login",
+      "passed": false,
+      "details": "History page is protected and should redirect"
+    },
+    {
+      "test": "Contact page access",
+      "expected": "Status 200 (allowed)",
+      "actual": "Status 500",
+      "passed": false,
+      "details": "Contact page should be publicly accessible"
+    },
+    {
+      "test": "Pricing page access",
+      "expected": "Status 200 (allowed)",
+      "actual": "Status 500",
+      "passed": false,
+      "details": "Pricing page should be publicly accessible"
+    },
+    {
+      "test": "Favicon access",
+      "expected": "No redirect (not 302)",
+      "actual": "Status 404",
+      "passed": true,
+      "details": "Favicon should bypass middleware"
+    },
+    {
+      "test": "Multiple redirects handling",
+      "expected": "Max 3 redirects",
+      "actual": "1 redirects",
+      "passed": true,
+      "details": "Should not cause infinite redirect loops"
+    },
+    {
+      "test": "Login without auth",
+      "expected": "Status 200 (allowed)",
+      "actual": "Status 500",
+      "passed": false,
+      "details": "Login page should be accessible to unauthenticated users"
+    },
+    {
+      "test": "Register without auth",
+      "expected": "Status 200 (allowed)",
+      "actual": "Status 500",
+      "passed": false,
+      "details": "Register page should be accessible to unauthenticated users"
+    }
+  ],
+  "criticalIssues": [
+    "Protected route not properly secured: Dashboard without auth",
+    "Protected route not properly secured: Analysis without auth",
+    "Protected route not properly secured: History without auth"
+  ]
+}

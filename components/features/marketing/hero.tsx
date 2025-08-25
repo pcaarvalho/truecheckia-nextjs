@@ -98,8 +98,7 @@ const Hero = () => {
                 if (isAuthenticated) {
                   router.push('/analysis')
                 } else {
-                  // Scroll to pricing section first
-                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })
+                  router.push('/pricing')
                 }
               }}
             >

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { generateTokens, comparePassword } from '../../../lib/auth'
-import { validateRequest, createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { loginSchema, type LoginInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { generateTokens, comparePassword } from '@/lib/auth'
+import { validateRequest, createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
+import { loginSchema, type LoginInput } from '@/app/lib/schemas'
 
 async function loginHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body
@@ -27,7 +27,11 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     throw new AppError('No account found with this email address.', 401, ERROR_CODES.INVALID_CREDENTIALS)
   }
 
-  // Verify password
+  // Verify password (skip if user doesn't have a password - OAuth users)
+  if (!user.password) {
+    throw new AppError('This account was created with Google. Please sign in with Google instead.', 401, ERROR_CODES.INVALID_CREDENTIALS)
+  }
+  
   const isValidPassword = await comparePassword(password, user.password)
 
   if (!isValidPassword) {

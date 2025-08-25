@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Botões</title>
+</head>
+<body>
+    <h1>Testando Botões da Landing Page</h1>
+    <p>Abra esta página no navegador e clique no botão abaixo para testar os botões da aplicação:</p>
+    
+    <button onclick="testButtons()">Testar Todos os Botões</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testButtons() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Resultados do Teste:</h2>';
+            
+            // Abre a aplicação em nova aba
+            const appWindow = window.open('http://localhost:3000', '_blank');
+            
+            results.innerHTML += '<p>✅ Página aberta em nova aba</p>';
+            results.innerHTML += '<p>Por favor, teste manualmente os seguintes botões:</p>';
+            results.innerHTML += '<ul>';
+            results.innerHTML += '<li>Login</li>';
+            results.innerHTML += '<li>Get Started Free</li>';
+            results.innerHTML += '<li>Start Free - No Card</li>';
+            results.innerHTML += '<li>See Plans</li>';
+            results.innerHTML += '<li>Start Pro Trial</li>';
+            results.innerHTML += '</ul>';
+            results.innerHTML += '<p><strong>Se os botões não funcionarem, verifique o console do navegador (F12) para erros JavaScript.</strong></p>';
+        }
+    </script>
+</body>
+</html>

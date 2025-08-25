@@ -24,6 +24,11 @@ async function changePasswordHandler(request: NextRequest): Promise<NextResponse
     throw new AppError('User not found', 404, ERROR_CODES.NOT_FOUND)
   }
 
+  // Check if user has a password (OAuth users don't)
+  if (!user.password) {
+    throw new AppError('This account was created with Google and does not have a password. Password changes are not available.', 400, ERROR_CODES.INVALID_CREDENTIALS)
+  }
+
   // Verify current password
   const isValidPassword = await comparePassword(currentPassword, user.password)
 

@@ -1,0 +1,350 @@
+/**
+ * ANALYSIS API ROUTE - VERSION 2.0
+ * 
+ * Updated to use the unified, deterministic AI detection system.
+ * Ensures consistent results for the same text every time.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '../../lib/prisma'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '../../lib/middleware'
+import { analyzeTextSchema } from '../../lib/schemas'
+import { Plan } from '@prisma/client'
+import { detectAIContent, healthCheck as detectionHealthCheck } from '../../lib/ai-detection-unified'
+import { cacheManager } from '../../lib/cache/manager'
+import { rateLimitManager, costRateLimitManager, withRateLimit } from '../../lib/rate-limit/manager'
+import { logger, createLogContext, getClientIP } from '../../lib/monitoring/logger'
+import { sendAnalysisCompleteEmail, sendCreditsLowEmail } from '@/lib/email/resend-client'
+
+// Helper function to reset credits if needed
+async function checkAndResetCredits(user: { id: string; credits: number; plan: Plan; creditsResetAt: Date }) {
+  const now = new Date()
+  const creditsResetAt = new Date(user.creditsResetAt)
+  
+  // Check if a month has passed since last reset
+  const monthsDiff = (now.getFullYear() - creditsResetAt.getFullYear()) * 12 + 
+                    (now.getMonth() - creditsResetAt.getMonth())
+  
+  if (monthsDiff >= 1) {
+    // Reset credits based on plan
+    const creditsToReset = user.plan === 'PRO' ? 1000 : user.plan === 'ENTERPRISE' ? 10000 : 10
+    
+    logger.info('Resetting user credits', {
+      userId: user.id,
+      plan: user.plan,
+      oldCredits: user.credits,
+      newCredits: creditsToReset,
+    })
+    
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        credits: creditsToReset,
+        creditsResetAt: now,
+      },
+    })
+    
+    // Invalidate user credits cache
+    await cacheManager.invalidateUserCredits(user.id)
+    
+    return updatedUser
+  }
+  
+  return user
+}
+
+async function createAnalysisHandler(request: NextRequest): Promise<NextResponse> {
+  const logContext = createLogContext(request)
+  const clientIP = getClientIP(request)
+  
+  console.log('[API V2] Analysis request started:', {
+    method: request.method,
+    url: request.url,
+    userAgent: request.headers.get('user-agent')
+  });
+  
+  try {
+    // Authenticate user
+    console.log('[API V2] Authenticating request...');
+    const { userId } = await authenticateRequest(request)
+    console.log('[API V2] User authenticated:', { userId });
+    logContext.userId = userId
+    
+    logger.apiRequest('POST', '/api/analysis', logContext)
+    
+    // Validate request body
+    const data = await validateRequest(request, analyzeTextSchema)
+    const { text, language = 'pt' } = data
+    
+    // Validate language
+    const validLanguage = (language === 'en') ? 'en' : 'pt'
+    
+    logger.analysisStarted(userId, text.length, validLanguage, logContext)
+    
+    // Get user and check/reset credits if needed
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        credits: true,
+        plan: true,
+        creditsResetAt: true,
+      },
+    })
+    
+    if (!user) {
+      throw new AppError('User not found', 404, ERROR_CODES.NOT_FOUND)
+    }
+    
+    // Check and reset credits if monthly period has passed
+    const updatedUserCredits = await checkAndResetCredits(user)
+    if (updatedUserCredits && updatedUserCredits.id === user.id) {
+      user.credits = updatedUserCredits.credits
+      user.creditsResetAt = updatedUserCredits.creditsResetAt
+    }
+    
+    // Check rate limiting
+    const rateLimitResult = await withRateLimit(userId, user.plan, clientIP)
+    
+    if (!rateLimitResult.allowed) {
+      logger.rateLimitExceeded(userId, clientIP, user.plan, logContext)
+      throw new AppError(
+        'Rate limit exceeded. Please wait before making more requests.',
+        429,
+        ERROR_CODES.RATE_LIMIT_EXCEEDED
+      )
+    }
+    
+    if (!user || user.credits <= 0) {
+      throw new AppError(
+        'Insufficient credits. Please upgrade your plan.',
+        402,
+        ERROR_CODES.INSUFFICIENT_CREDITS
+      )
+    }
+    
+    // Perform analysis using unified system
+    console.log('[API V2] Starting unified AI detection...');
+    const analysisResult = await detectAIContent(text, validLanguage)
+    console.log('[API V2] Analysis completed:', {
+      score: analysisResult.aiScore,
+      confidence: analysisResult.confidence,
+      cached: analysisResult.cached,
+      processingTime: analysisResult.processingTime
+    });
+    
+    // Prepare analysis data for database
+    const analysisData = {
+      id: `analysis_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      userId: user.id,
+      text,
+      language: validLanguage,
+      aiScore: analysisResult.aiScore,
+      confidence: analysisResult.confidence,
+      isAiGenerated: analysisResult.isAiGenerated,
+      indicators: analysisResult.indicators,
+      explanation: analysisResult.explanation,
+      suspiciousParts: analysisResult.suspiciousParts,
+      processingTime: analysisResult.processingTime,
+      wordCount: analysisResult.wordCount,
+      charCount: analysisResult.charCount,
+      // Note: These fields will be available after migration
+      tokensUsed: analysisResult.tokensUsed || 0,
+      estimatedCost: analysisResult.estimatedCost || 0,
+      cached: analysisResult.cached || false,
+      // New fields for v2
+      version: analysisResult.version,
+      ensembleData: JSON.stringify({
+        primaryScore: analysisResult.ensemble?.primaryScore,
+        statisticalScore: analysisResult.ensemble?.statisticalScore,
+        semanticScore: analysisResult.ensemble?.semanticScore,
+        agreement: analysisResult.ensemble?.agreement
+      })
+    }
+    
+    // Save analysis to database
+    console.log('[API V2] Saving analysis to database...');
+    const analysis = await prisma.analysis.create({
+      data: analysisData,
+      select: {
+        id: true,
+        aiScore: true,
+        confidence: true,
+        isAiGenerated: true,
+        indicators: true,
+        explanation: true,
+        suspiciousParts: true,
+        processingTime: true,
+        wordCount: true,
+        charCount: true,
+        createdAt: true,
+      },
+    })
+    
+    // Deduct credit only if not cached
+    let remainingCredits = user.credits
+    if (!analysisResult.cached) {
+      console.log('[API V2] Deducting credit...');
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          credits: {
+            decrement: 1,
+          },
+        },
+      })
+      remainingCredits -= 1
+      
+      logger.creditsDeducted(userId, remainingCredits, logContext)
+      
+      // Invalidate user credits cache
+      await cacheManager.invalidateUserCredits(userId)
+    }
+    
+    // Send analysis complete email asynchronously (only if not cached)
+    if (!analysisResult.cached && user && user.email && user.name) {
+      const analysisEmailData = {
+        text: text.length > 500 ? `${text.substring(0, 500)}...` : text,
+        aiProbability: analysisResult.aiScore,
+        isAiGenerated: analysisResult.isAiGenerated,
+        analysisId: analysis.id,
+      }
+      
+      sendAnalysisCompleteEmail(user.email, user.name, analysisEmailData).catch(error => {
+        console.error('Failed to send analysis complete email:', error)
+      })
+      
+      // Send credits low warning if credits are running low (5 or less)
+      if (remainingCredits <= 5 && remainingCredits > 0) {
+        sendCreditsLowEmail(user.email, user.name, remainingCredits).catch(error => {
+          console.error('Failed to send credits low email:', error)
+        })
+      }
+    }
+    
+    // Log successful analysis
+    logger.analysisCompleted(
+      userId,
+      analysisResult.aiScore,
+      analysisResult.processingTime,
+      analysisResult.tokensUsed || 0,
+      analysisResult.estimatedCost || 0,
+      analysisResult.cached || false,
+      logContext
+    )
+    
+    console.log('[API V2] Analysis request completed successfully');
+    
+    const response = createResponse({
+      ...analysis,
+      remainingCredits,
+      // Additional metadata for debugging
+      cached: analysisResult.cached,
+      version: analysisResult.version,
+      ensemble: analysisResult.ensemble
+    }, true, 'Analysis completed successfully', 201)
+    
+    // Add rate limit headers
+    const rateLimitHeaders = rateLimitManager.getRateLimitHeaders(rateLimitResult)
+    Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    logger.apiResponse('POST', '/api/analysis', 201, {
+      ...logContext,
+      duration: Date.now() - parseInt(logContext.requestId?.split('_')[1] || '0'),
+    })
+    
+    return response
+    
+  } catch (error) {
+    const statusCode = error instanceof AppError ? error.statusCode : 500
+    console.error('[API V2] Analysis request failed:', error);
+    
+    logger.apiResponse('POST', '/api/analysis', statusCode, {
+      ...logContext,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    throw error
+  }
+}
+
+async function getAnalysisHistoryHandler(request: NextRequest): Promise<NextResponse> {
+  // Authenticate user
+  const { userId } = await authenticateRequest(request)
+
+  // Get query parameters for pagination
+  const url = new URL(request.url)
+  const page = parseInt(url.searchParams.get('page') || '1')
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50)
+  const skip = (page - 1) * limit
+
+  // Get user's analysis history
+  const analyses = await prisma.analysis.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      aiScore: true,
+      confidence: true,
+      isAiGenerated: true,
+      explanation: true,
+      processingTime: true,
+      wordCount: true,
+      charCount: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    skip,
+    take: limit,
+  })
+
+  // Get total count for pagination
+  const total = await prisma.analysis.count({
+    where: { userId },
+  })
+
+  return createResponse({
+    analyses,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  })
+}
+
+async function getHealthCheckHandler(request: NextRequest): Promise<NextResponse> {
+  console.log('[API V2] Health check requested');
+  
+  try {
+    const healthStatus = await detectionHealthCheck()
+    
+    return createResponse({
+      status: healthStatus.status,
+      version: '2.0.0',
+      components: healthStatus.components,
+      cache: healthStatus.cache,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('[API V2] Health check failed:', error)
+    
+    return createResponse({
+      status: 'down',
+      version: '2.0.0',
+      error: error instanceof Error ? error.message : 'Health check failed',
+      timestamp: new Date().toISOString()
+    }, false, 'Health check failed', 503)
+  }
+}
+
+// Export handlers for different HTTP methods
+export const POST = withErrorHandler(createAnalysisHandler)
+export const GET = withErrorHandler(getAnalysisHistoryHandler) 
+export const OPTIONS = handleOptions
+
+// Add health check endpoint
+export { getHealthCheckHandler as PATCH } // Using PATCH for health check to avoid conflicts

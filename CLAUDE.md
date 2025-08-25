@@ -2,136 +2,130 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
+## Essential Commands
 
 ```bash
 # Development
-npm run dev          # Start development server (http://localhost:3000)
-npm run build        # Build for production
-npm run start        # Start production server
-npm run preview      # Build and start production server
+npm run dev                      # Start development server (http://localhost:3000)
+npm run build                    # Build for production
+npm run start                    # Start production server
+npm run preview                  # Build and start production server
 
-# Code Quality
-npm run lint         # Run ESLint
-npm run lint:fix     # Run ESLint with automatic fixes
-npm run type-check   # Run TypeScript type checking
+# Code Quality - ALWAYS run before completing tasks
+npm run lint                     # Run ESLint
+npm run lint:fix                 # Run ESLint with automatic fixes
+npm run type-check               # Run TypeScript type checking
 
-# Database
-npx prisma migrate dev     # Run database migrations
-npx prisma generate       # Generate Prisma client
-npx prisma studio         # Open Prisma Studio
+# Database Operations
+npx prisma migrate dev --name [name]  # Create new migration
+npx prisma generate                    # Generate Prisma client after schema changes
+npx prisma studio                      # Open Prisma Studio GUI
+npx prisma db push                     # Push schema changes without migration (dev only)
 
-# Bundle Analysis
-npm run analyze      # Analyze bundle size with Next.js Bundle Analyzer
+# Testing & Analysis
+npm run analyze                  # Analyze bundle size with Next.js Bundle Analyzer
+
+# Script Utilities
+node scripts/create-test-user.js        # Create test user in database
+node scripts/setup-stripe-products.js   # Setup Stripe products
 ```
 
-## Project Architecture
+## High-Level Architecture
 
-This is a **Next.js 15** AI content detection SaaS platform migrated from Vite. The project uses the **App Router** with TypeScript and follows a feature-based organization pattern.
+This is a **Next.js 15** AI content detection SaaS platform. The application uses modern React patterns with App Router, server components, and comprehensive authentication/payment systems.
 
-### Core Technologies
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript 5.0
-- **Database**: Prisma ORM with SQLite (development)
-- **Styling**: Tailwind CSS + ShadCN/UI components
-- **Authentication**: JWT + Google OAuth
-- **State Management**: TanStack Query (React Query)
-- **Forms**: React Hook Form + Zod validation
-- **UI Components**: Radix UI primitives via ShadCN/UI
-- **PWA**: @ducanh2912/next-pwa (production only)
+### Critical Architecture Decisions
 
-### Route Structure
-The app uses Next.js 15 App Router with route groups:
+1. **App Router with Route Groups**: The app uses Next.js 15's App Router with three main route groups:
+   - `(auth)` - Public authentication pages
+   - `(marketing)` - Public landing/marketing pages  
+   - `(dashboard)` - Protected user dashboard area
 
-- `app/(auth)/` - Authentication pages (login, register, password reset)
-- `app/(marketing)/` - Public marketing/landing pages  
-- `app/(dashboard)/` - Protected dashboard pages (analysis, profile, history)
-- `app/api/` - API routes for backend functionality
+2. **JWT Authentication with Middleware**: Authentication is handled via JWT tokens with refresh token rotation. The `middleware.ts` validates tokens and protects routes at the edge.
 
-### Database Schema
-The Prisma schema includes:
-- **User**: Authentication, credits, subscription management
-- **Analysis**: AI content detection results and metadata
-- **Subscription**: Stripe subscription tracking
+3. **Prisma + SQLite/PostgreSQL**: Database abstraction via Prisma ORM, using SQLite for development and PostgreSQL for production. All database operations go through the Prisma client.
 
-Key user roles: `USER`, `ADMIN`
-Plans: `FREE`, `PRO`, `ENTERPRISE`
+4. **Component Organization**: Three-tier component structure:
+   - `components/ui/` - Base ShadCN/UI primitives (button, card, input)
+   - `components/features/` - Feature-specific business components
+   - `components/layout/` - Layout and navigation components
 
-### Component Organization
+5. **AI Detection System**: The core AI detection logic is centralized in `lib/ai-detection.ts` with multiple provider support and unified response format.
+
+### Authentication & Security Flow
 
 ```
-components/
-├── ui/              # ShadCN/UI base components (button, card, input, etc.)
-├── features/        # Feature-specific components (auth/, analysis/, marketing/)
-└── layout/          # Layout components (header/, footer/)
+User Login → JWT Access Token (15min) + Refresh Token (7d) 
+           → Stored in httpOnly cookies
+           → Middleware validates on each request
+           → Auto-refresh via /api/auth/refresh
 ```
 
-### Environment Variables
-Uses `NEXT_PUBLIC_*` prefix for client-side variables:
-- `NEXT_PUBLIC_API_URL` - Backend API URL
-- `NEXT_PUBLIC_BASE_URL` - Frontend base URL
-- `DATABASE_URL` - Prisma database connection
+Protected routes check for valid JWT in middleware before rendering. Invalid tokens trigger redirect to login with return URL preservation.
 
-## Development Guidelines
+### Database Schema Core Models
 
-### File Naming Conventions
-- Files: `kebab-case.tsx` (e.g., `analysis-form.tsx`)
-- Components: `PascalCase` (e.g., `AnalysisForm`)
-- Hooks: `camelCase` with `use` prefix (e.g., `useAnalysis`)
+- **User**: Authentication, credits, subscription, role (USER/ADMIN)
+- **Analysis**: AI detection results with confidence scores
+- **Subscription**: Stripe integration for PRO/ENTERPRISE plans
 
-### Import Order
-1. External libraries (React, Next.js)
-2. UI components (`@/components/ui/*`)
-3. Feature components (`@/components/features/*`)
-4. Hooks (`@/hooks/*`)
-5. Utilities (`@/lib/*`)
-6. Types (`@/types/*`)
+Credit system: FREE users get 10 credits/month, auto-reset via cron job.
 
-### Path Aliases
-- `@/*` maps to project root
-- Use absolute imports: `@/components/ui/button` instead of relative paths
+### API Routes Pattern
 
-### Authentication Flow
-- JWT-based authentication with refresh tokens
-- Google OAuth integration
-- Route protection via middleware
-- Role-based access control
+All API routes follow RESTful conventions in `app/api/`:
+- Authentication: `/api/auth/[login|register|refresh|logout]`
+- Analysis: `/api/analysis` (POST for new, GET for history)
+- Stripe: `/api/stripe/[checkout|webhook|portal]`
 
-### API Routes Structure
-```
-app/api/
-├── auth/           # Authentication endpoints
-├── analysis/       # AI content detection endpoints
-├── health/         # Health check
-└── test/          # Development testing
-```
+### State Management Strategy
 
-## Common Development Tasks
+- **Server State**: TanStack Query for API data caching/synchronization
+- **Form State**: React Hook Form + Zod validation
+- **UI State**: Local component state, Context API for themes
+- **Auth State**: Custom auth context with JWT management
 
-### Adding New UI Components
-1. Use ShadCN CLI: `npx shadcn-ui@latest add [component]`
-2. Components auto-install to `components/ui/`
-3. Follow existing component patterns for variants and styling
+## Development Patterns
 
-### Database Changes
-1. Update `prisma/schema.prisma`
-2. Run `npx prisma migrate dev --name [migration-name]`
-3. Run `npx prisma generate` to update client
+### File Naming & Import Conventions
+- Files: `kebab-case.tsx`
+- Components: `PascalCase`
+- Path alias: `@/` maps to root (use absolute imports)
+- Import order: External → UI → Features → Hooks → Utils → Types
 
-### Adding API Routes
-1. Create route handlers in `app/api/[route]/route.ts`
-2. Export named functions: `GET`, `POST`, `PUT`, `DELETE`
-3. Use Prisma client for database operations
+### Adding New Features Checklist
+1. Create feature components in `components/features/[feature]/`
+2. Add API route in `app/api/[feature]/route.ts`
+3. Create custom hook in `hooks/[feature]/use-[feature].ts`
+4. Update Prisma schema if needed → migrate → generate
+5. Add route to protected/public arrays in `middleware.ts`
 
-### Testing Locally
-- Development server runs on `http://localhost:3000`
-- Database file: `prisma/dev.db` (SQLite)
-- PWA features disabled in development mode
+### Common Pitfalls to Avoid
+- Don't import server-only code in client components
+- Always use `NEXT_PUBLIC_` prefix for client-side env vars
+- Run `npx prisma generate` after any schema changes
+- Clear cookies when debugging auth issues
+- PWA features only work in production builds
 
-## Migration Notes
+### Testing & Debugging
+- Auth issues: Check JWT expiry, cookie settings, middleware logs
+- Database issues: Use `npx prisma studio` for visual debugging
+- API issues: Check CORS settings, JWT validation
+- Build issues: Run `npm run type-check` first
 
-This project was migrated from Vite to Next.js 15. Key changes:
-- React Router → Next.js App Router
-- `VITE_*` → `NEXT_PUBLIC_*` environment variables
-- `react-helmet-async` → Next.js Metadata API
-- Custom bundler → Next.js built-in optimization
+## Migration Context
+
+This project was migrated from Vite to Next.js 15. Key differences:
+- React Router → Next.js App Router with file-based routing
+- Vite env vars (`VITE_*`) → Next.js env vars (`NEXT_PUBLIC_*`)
+- Client-side routing → Server components + client components
+- Manual SSR → Built-in SSR/SSG/ISR support
+
+## Production Deployment
+
+The app is optimized for Vercel deployment with:
+- Edge middleware for auth
+- Automatic image optimization
+- PWA support (production only)
+- PostgreSQL via Vercel Postgres or Supabase
+- Stripe webhook handling

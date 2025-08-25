@@ -1,0 +1,387 @@
+'use client'
+
+/**
+ * Analytics Hook
+ * Provides easy access to all analytics functions
+ */
+
+import { useCallback, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+
+// Import all analytics modules
+import {
+  trackEvent as trackGAEvent,
+  trackPageView as trackGAPageView,
+  setUserProperties as setGAUserProperties,
+  trackConversion as trackGAConversion,
+  GAEvent,
+  GAPageView,
+  GAUserProperties
+} from '@/app/lib/analytics/gtag'
+
+import {
+  trackAnalysisStarted,
+  trackAnalysisCompleted,
+  trackAnalysisFailed,
+  trackSignupInitiated,
+  trackSignupCompleted,
+  trackLoginCompleted,
+  trackSubscriptionViewed,
+  trackSubscriptionInitiated,
+  trackSubscriptionCompleted,
+  trackCreditsLowWarning,
+  trackAPIKeyGenerated,
+  trackCTAClicked,
+  trackFeatureExplored,
+  trackAPIError,
+  trackHelpAccessed,
+  trackSupportContacted,
+  AnalysisEventParams,
+  AuthEventParams,
+  SubscriptionEventParams
+} from '@/app/lib/analytics/events'
+
+import {
+  trackClarityEvent,
+  setClarityUserId,
+  trackClarityAnalysis,
+  trackClaritySubscription
+} from '@/app/lib/analytics/clarity'
+
+import {
+  trackFacebookEvent,
+  trackFacebookCompleteRegistration,
+  trackFacebookPurchase,
+  trackFacebookAnalysisCompleted
+} from '@/app/lib/analytics/facebook-pixel'
+
+import {
+  trackLinkedInSignup,
+  trackLinkedInSubscription,
+  trackLinkedInCustomEvent
+} from '@/app/lib/analytics/linkedin-insight'
+
+import {
+  trackMixpanelEvent,
+  identifyMixpanelUser,
+  setMixpanelUserProfile,
+  trackMixpanelPageView,
+  trackMixpanelSignup,
+  trackMixpanelAnalysisStarted,
+  trackMixpanelAnalysisCompleted,
+  trackMixpanelSubscriptionCompleted,
+  trackMixpanelFeatureUsed,
+  incrementMixpanelUserProperty
+} from '@/app/lib/analytics/mixpanel'
+
+// Analytics configuration type
+interface AnalyticsConfig {
+  ga4Enabled: boolean
+  clarityEnabled: boolean
+  facebookEnabled: boolean
+  linkedinEnabled: boolean
+  mixpanelEnabled: boolean
+}
+
+// Default configuration
+const DEFAULT_CONFIG: AnalyticsConfig = {
+  ga4Enabled: true,
+  clarityEnabled: true,
+  facebookEnabled: true,
+  linkedinEnabled: true,
+  mixpanelEnabled: true,
+}
+
+export function useAnalytics(config: Partial<AnalyticsConfig> = {}) {
+  const pathname = usePathname()
+  const analyticsConfig = { ...DEFAULT_CONFIG, ...config }
+
+  // Track page view automatically
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const pageTitle = document.title
+    const pageLocation = window.location.href
+    const pagePath = pathname
+
+    // GA4 Page View
+    if (analyticsConfig.ga4Enabled) {
+      trackGAPageView({
+        page_title: pageTitle,
+        page_location: pageLocation,
+        page_path: pagePath,
+      })
+    }
+
+    // Mixpanel Page View
+    if (analyticsConfig.mixpanelEnabled) {
+      trackMixpanelPageView(pageTitle, {
+        page_path: pagePath,
+        page_url: pageLocation,
+      })
+    }
+
+    // Clarity Page View
+    if (analyticsConfig.clarityEnabled) {
+      trackClarityEvent({
+        event: 'page_view',
+        properties: {
+          page_path: pagePath,
+          page_title: pageTitle,
+        }
+      })
+    }
+  }, [pathname, analyticsConfig])
+
+  // User identification
+  const identifyUser = useCallback((userId: string, userProperties: {
+    email?: string
+    name?: string
+    plan?: 'FREE' | 'PRO' | 'ENTERPRISE'
+    signupMethod?: 'email' | 'google'
+    creditsRemaining?: number
+    totalAnalyses?: number
+  }) => {
+    // GA4 User Properties
+    if (analyticsConfig.ga4Enabled) {
+      setGAUserProperties({
+        user_id: userId,
+        subscription_plan: userProperties.plan,
+        signup_method: userProperties.signupMethod,
+        credits_remaining: userProperties.creditsRemaining,
+        analysis_count: userProperties.totalAnalyses,
+      })
+    }
+
+    // Clarity User ID
+    if (analyticsConfig.clarityEnabled) {
+      setClarityUserId(userId)
+    }
+
+    // Mixpanel User Identification
+    if (analyticsConfig.mixpanelEnabled) {
+      identifyMixpanelUser(userId, {
+        $email: userProperties.email,
+        $name: userProperties.name,
+        plan: userProperties.plan,
+        signup_method: userProperties.signupMethod,
+        credits_remaining: userProperties.creditsRemaining,
+        total_analyses: userProperties.totalAnalyses,
+      })
+    }
+  }, [analyticsConfig])
+
+  // Analysis tracking
+  const trackAnalysis = useCallback({
+    started: (params: AnalysisEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackAnalysisStarted(params)
+      if (analyticsConfig.mixpanelEnabled) {
+        trackMixpanelAnalysisStarted(params.text_length, params.analysis_type)
+      }
+    },
+    completed: (params: AnalysisEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackAnalysisCompleted(params)
+      if (analyticsConfig.clarityEnabled) {
+        trackClarityAnalysis(params.analysis_type || 'text', params.detection_confidence || 0)
+      }
+      if (analyticsConfig.facebookEnabled) {
+        trackFacebookAnalysisCompleted(params.detection_confidence || 0, params.text_length)
+      }
+      if (analyticsConfig.mixpanelEnabled) {
+        trackMixpanelAnalysisCompleted({
+          textLength: params.text_length,
+          confidence: params.detection_confidence || 0,
+          aiProbability: params.ai_probability || 0,
+          processingTime: params.processing_time || 0,
+          creditsUsed: params.credits_used || 1,
+          analysisType: params.analysis_type,
+        })
+      }
+    },
+    failed: (params: Partial<AnalysisEventParams> & { error_reason: string }) => {
+      if (analyticsConfig.ga4Enabled) trackAnalysisFailed(params)
+    },
+  }, [analyticsConfig])
+
+  // Authentication tracking
+  const trackAuth = useCallback({
+    signupStarted: (params: AuthEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackSignupInitiated(params)
+    },
+    signupCompleted: (params: AuthEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackSignupCompleted(params)
+      if (analyticsConfig.facebookEnabled) trackFacebookCompleteRegistration()
+      if (analyticsConfig.linkedinEnabled) trackLinkedInSignup(params.method)
+      if (analyticsConfig.mixpanelEnabled) trackMixpanelSignup(params.method, params.signup_source)
+    },
+    loginCompleted: (params: AuthEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackLoginCompleted(params)
+    },
+  }, [analyticsConfig])
+
+  // Subscription tracking
+  const trackSubscription = useCallback({
+    viewed: (plan: string) => {
+      if (analyticsConfig.ga4Enabled) trackSubscriptionViewed(plan)
+    },
+    started: (params: SubscriptionEventParams) => {
+      if (analyticsConfig.ga4Enabled) trackSubscriptionInitiated(params)
+    },
+    completed: (params: SubscriptionEventParams & { transaction_id: string }) => {
+      if (analyticsConfig.ga4Enabled) trackSubscriptionCompleted(params)
+      if (analyticsConfig.clarityEnabled) {
+        trackClaritySubscription(params.plan, params.price)
+      }
+      if (analyticsConfig.facebookEnabled) {
+        trackFacebookPurchase({
+          value: params.price,
+          currency: params.currency,
+          content_ids: [`subscription_${params.plan.toLowerCase()}`],
+          content_type: 'subscription',
+          content_name: `${params.plan} Subscription`,
+        })
+      }
+      if (analyticsConfig.linkedinEnabled) {
+        trackLinkedInSubscription(params.plan, params.price, params.billing_cycle)
+      }
+      if (analyticsConfig.mixpanelEnabled) {
+        trackMixpanelSubscriptionCompleted({
+          plan: params.plan,
+          billingCycle: params.billing_cycle,
+          price: params.price,
+          transactionId: params.transaction_id,
+          previousPlan: params.previous_plan,
+        })
+      }
+    },
+  }, [analyticsConfig])
+
+  // Feature usage tracking
+  const trackFeature = useCallback((featureName: string, properties?: Record<string, any>) => {
+    if (analyticsConfig.ga4Enabled) trackFeatureExplored(featureName)
+    if (analyticsConfig.mixpanelEnabled) trackMixpanelFeatureUsed(featureName, properties)
+    if (analyticsConfig.linkedinEnabled) {
+      trackLinkedInCustomEvent({
+        event_name: 'feature_usage',
+        properties: {
+          feature: featureName,
+          ...properties,
+        }
+      })
+    }
+  }, [analyticsConfig])
+
+  // CTA tracking
+  const trackCTA = useCallback((ctaText: string, location: string) => {
+    if (analyticsConfig.ga4Enabled) trackCTAClicked(ctaText, location)
+    if (analyticsConfig.mixpanelEnabled) {
+      trackMixpanelEvent({
+        event_name: 'CTA Clicked',
+        properties: {
+          cta_text: ctaText,
+          cta_location: location,
+        }
+      })
+    }
+  }, [analyticsConfig])
+
+  // Error tracking
+  const trackError = useCallback((errorType: string, errorMessage: string, context?: Record<string, any>) => {
+    if (analyticsConfig.ga4Enabled) {
+      trackAPIError({
+        error_type: errorType,
+        error_message: errorMessage,
+        page_path: pathname,
+      })
+    }
+    if (analyticsConfig.clarityEnabled) {
+      trackClarityEvent({
+        event: 'error_occurred',
+        properties: {
+          error_type: errorType,
+          error_message: errorMessage,
+          page_path: pathname,
+          ...context,
+        }
+      })
+    }
+  }, [analyticsConfig, pathname])
+
+  // Support tracking
+  const trackSupport = useCallback((method: 'email' | 'chat' | 'form', section?: string) => {
+    if (analyticsConfig.ga4Enabled) {
+      if (section) {
+        trackHelpAccessed(section)
+      } else {
+        trackSupportContacted(method)
+      }
+    }
+    if (analyticsConfig.mixpanelEnabled) {
+      trackMixpanelEvent({
+        event_name: section ? 'Help Accessed' : 'Support Contacted',
+        properties: {
+          method: method,
+          section: section,
+        }
+      })
+    }
+  }, [analyticsConfig])
+
+  // Credits tracking
+  const trackCredits = useCallback({
+    lowWarning: (remainingCredits: number) => {
+      if (analyticsConfig.ga4Enabled) trackCreditsLowWarning(remainingCredits)
+      if (analyticsConfig.mixpanelEnabled) {
+        trackMixpanelEvent({
+          event_name: 'Credits Low Warning',
+          properties: {
+            remaining_credits: remainingCredits,
+          }
+        })
+      }
+    },
+    apiKeyGenerated: (userId?: string) => {
+      if (analyticsConfig.ga4Enabled) trackAPIKeyGenerated(userId)
+      if (analyticsConfig.mixpanelEnabled) {
+        trackMixpanelEvent({
+          event_name: 'API Key Generated',
+          properties: {
+            user_id: userId,
+          }
+        })
+      }
+    },
+  }, [analyticsConfig])
+
+  // Generic event tracking
+  const trackCustomEvent = useCallback((eventName: string, properties?: Record<string, any>) => {
+    if (analyticsConfig.ga4Enabled) {
+      trackGAEvent({
+        action: eventName,
+        category: 'custom',
+        custom_parameters: properties,
+      })
+    }
+    if (analyticsConfig.mixpanelEnabled) {
+      trackMixpanelEvent({
+        event_name: eventName,
+        properties: properties,
+      })
+    }
+  }, [analyticsConfig])
+
+  return {
+    identifyUser,
+    trackAnalysis,
+    trackAuth,
+    trackSubscription,
+    trackFeature,
+    trackCTA,
+    trackError,
+    trackSupport,
+    trackCredits,
+    trackCustomEvent,
+  }
+}
+
+export default useAnalytics

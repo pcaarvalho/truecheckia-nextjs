@@ -1,0 +1,230 @@
+{
+  "monitoring": {
+    "name": "TrueCheckIA Production Monitoring",
+    "version": "1.0.0",
+    "environment": "production",
+    "domain": "www.truecheckia.com"
+  },
+  "healthChecks": {
+    "interval": "1m",
+    "timeout": "30s",
+    "endpoints": [
+      {
+        "name": "Health Check",
+        "url": "/api/health",
+        "method": "GET",
+        "expectedStatus": 200,
+        "critical": true
+      },
+      {
+        "name": "Homepage",
+        "url": "/",
+        "method": "GET",
+        "expectedStatus": 200,
+        "critical": true
+      },
+      {
+        "name": "Login API",
+        "url": "/api/auth/login",
+        "method": "POST",
+        "expectedStatus": 400,
+        "critical": true,
+        "note": "Should return 400 for empty body"
+      },
+      {
+        "name": "Analysis API",
+        "url": "/api/analysis",
+        "method": "GET", 
+        "expectedStatus": 401,
+        "critical": true,
+        "note": "Should return 401 without auth"
+      }
+    ]
+  },
+  "performance": {
+    "targets": {
+      "homepage": {
+        "loadTime": "< 3s",
+        "firstContentfulPaint": "< 1.5s",
+        "largestContentfulPaint": "< 2.5s"
+      },
+      "api": {
+        "responseTime": "< 1s",
+        "healthCheck": "< 500ms"
+      }
+    },
+    "alerts": {
+      "responseTime": "> 5s",
+      "errorRate": "> 1%",
+      "uptime": "< 99.9%"
+    }
+  },
+  "security": {
+    "ssl": {
+      "certificate": "Valid SSL certificate required",
+      "tls": "TLS 1.2+ minimum",
+      "hsts": "Strict-Transport-Security header required"
+    },
+    "headers": [
+      "X-Content-Type-Options: nosniff",
+      "X-Frame-Options: DENY", 
+      "X-XSS-Protection: 1; mode=block",
+      "Referrer-Policy: strict-origin-when-cross-origin",
+      "Content-Security-Policy: default-src 'self'"
+    ],
+    "monitoring": {
+      "loginAttempts": "Monitor failed login attempts",
+      "apiUsage": "Track API rate limiting",
+      "suspiciousActivity": "Alert on unusual patterns"
+    }
+  },
+  "infrastructure": {
+    "platform": "Vercel",
+    "region": "us-east-1",
+    "database": {
+      "provider": "Neon PostgreSQL",
+      "monitoring": [
+        "Connection pool status",
+        "Query performance",
+        "Storage usage"
+      ]
+    },
+    "cdn": {
+      "provider": "Vercel Edge Network",
+      "caching": "Static assets cached at edge"
+    }
+  },
+  "integrations": {
+    "stripe": {
+      "webhooks": "Monitor webhook delivery",
+      "payments": "Track payment success rates",
+      "subscriptions": "Monitor subscription lifecycle"
+    },
+    "openai": {
+      "apiUsage": "Track token consumption",
+      "rateLimits": "Monitor rate limit status",
+      "errorRates": "Alert on API failures"
+    },
+    "resend": {
+      "emailDelivery": "Monitor email delivery rates",
+      "bounces": "Track bounce rates",
+      "templates": "Validate email templates"
+    },
+    "google": {
+      "oauth": "Monitor OAuth flow success",
+      "apiQuotas": "Track API quota usage"
+    }
+  },
+  "alerts": {
+    "critical": [
+      "Site down (5xx errors > 50%)",
+      "Database connection failures", 
+      "Authentication system failures",
+      "Payment processing failures"
+    ],
+    "warning": [
+      "Response time > 5s",
+      "Error rate > 1%",
+      "Memory usage > 80%",
+      "API rate limiting triggered"
+    ],
+    "info": [
+      "New user registrations",
+      "High traffic periods",
+      "Successful deployments"
+    ]
+  },
+  "dashboards": {
+    "operational": {
+      "metrics": [
+        "Uptime percentage",
+        "Response times",
+        "Error rates",
+        "Active users",
+        "API requests per minute"
+      ],
+      "timeRange": "24h"
+    },
+    "business": {
+      "metrics": [
+        "New user signups",
+        "Subscription conversions",
+        "AI analysis requests",
+        "Revenue metrics",
+        "User retention"
+      ],
+      "timeRange": "7d"
+    },
+    "technical": {
+      "metrics": [
+        "Server resource usage",
+        "Database performance",
+        "CDN cache hit rates",
+        "Build and deployment status",
+        "Error logs and traces"
+      ],
+      "timeRange": "1h"
+    }
+  },
+  "sla": {
+    "uptime": "99.9%",
+    "responseTime": "< 3s for 95th percentile",
+    "errorRate": "< 0.1%",
+    "dataBackup": "Daily automated backups",
+    "security": "24/7 security monitoring"
+  },
+  "runbooks": {
+    "deployment": {
+      "preDeployment": [
+        "Run pre-deploy validation script",
+        "Verify database migrations",
+        "Check environment variables",
+        "Validate API integrations"
+      ],
+      "postDeployment": [
+        "Run post-deploy validation",
+        "Monitor error rates for 1 hour",
+        "Verify critical user flows",
+        "Update monitoring dashboards"
+      ],
+      "rollback": [
+        "Identify rollback trigger",
+        "Execute Vercel rollback",
+        "Verify system stability", 
+        "Communicate status to stakeholders"
+      ]
+    },
+    "incidents": {
+      "p1Critical": [
+        "Site completely down",
+        "Database unavailable",
+        "Payment processing failed",
+        "Security breach detected"
+      ],
+      "p2High": [
+        "Performance degradation > 5s",
+        "API errors > 5%",
+        "Email delivery failures",
+        "OAuth authentication issues"
+      ],
+      "p3Medium": [
+        "Non-critical feature failures",
+        "Monitoring alerts",
+        "Capacity planning needs",
+        "Third-party service issues"
+      ]
+    }
+  },
+  "contacts": {
+    "oncall": {
+      "primary": "Development Team",
+      "escalation": "Technical Lead",
+      "emergency": "System Administrator"
+    },
+    "notifications": {
+      "email": ["alerts@truecheckia.com"],
+      "slack": "#prod-alerts",
+      "sms": "Critical alerts only"
+    }
+  }
+}

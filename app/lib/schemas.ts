@@ -2,14 +2,14 @@ import { z } from 'zod'
 
 // Auth schemas
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export const registerSchema = z.object({
-  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export const refreshTokenSchema = z.object({
@@ -40,7 +40,7 @@ export const changePasswordSchema = z.object({
 
 // Analysis schemas
 export const analyzeTextSchema = z.object({
-  text: z.string().min(50, 'Texto deve ter no mínimo 50 caracteres').max(10000, 'Texto muito longo'),
+  text: z.string().min(50, 'Text must be at least 50 characters').max(10000, 'Text too long'),
   language: z.enum(['pt', 'en']).optional(),
 }).transform(data => ({
   text: data.text,

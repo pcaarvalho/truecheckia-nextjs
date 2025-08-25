@@ -37,10 +37,10 @@ const Header = () => {
 
   // Public navigation items
   const publicNavItems = [
-    { name: "Features", href: "#features" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "API", href: "#api" },
-    { name: "Blog", href: "#blog" },
+    { name: "Features", href: "/#features" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "API", href: "/api" },
+    { name: "Blog", href: "/blog" },
   ]
 
   // Authenticated user navigation items

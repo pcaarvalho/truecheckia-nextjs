@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth E2E Browser Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .cookie-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .redirect-chain {
+            background: #e2e3e5;
+            border-left: 4px solid #6c757d;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Google OAuth E2E Browser Test</h1>
+    <p>This page tests the complete Google OAuth authentication flow and captures detailed logs of the process.</p>
+    
+    <div class="test-section">
+        <h2>📊 Test Dashboard</h2>
+        <div id="status" class="status info">
+            <strong>Status:</strong> Ready to test
+        </div>
+        
+        <div>
+            <button onclick="runHealthCheck()">🏥 Health Check</button>
+            <button onclick="testOAuthFlow()">🔑 Test OAuth Flow</button>
+            <button onclick="testProtectedRoute()">🛡️ Test Protected Routes</button>
+            <button onclick="testTokenRefresh()">🔄 Test Token Refresh</button>
+            <button onclick="testLogout()">🚪 Test Logout</button>
+            <button onclick="clearLogs()">🧹 Clear Logs</button>
+            <button onclick="exportLogs()">📁 Export Logs</button>
+        </div>
+    </div>
+    
+    <div class="test-grid">
+        <div class="test-section">
+            <h3>🏥 Server Health</h3>
+            <div id="health-status">Click "Health Check" to test server connectivity</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🍪 Cookie Status</h3>
+            <div id="cookie-status">No cookies detected</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔄 Redirect Chain Tracking</h3>
+        <div id="redirect-chain">No redirects tracked yet</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Network Logs</h3>
+        <div id="network-logs" class="log-container">Network logging started...\n</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🖥️ Console Logs</h3>
+        <div id="console-logs" class="log-container">Console logging started...\n</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 Error Logs</h3>
+        <div id="error-logs" class="log-container">Error logging started...\n</div>
+    </div>
+
+    <script>
+        // Logging system
+        const logs = {
+            network: [],
+            console: [],
+            errors: [],
+            redirects: []
+        };
+        
+        // Configuration
+        const config = {
+            baseUrl: 'http://localhost:3000',
+            apiUrl: 'http://localhost:3000/api',
+            verbose: true
+        };
+        
+        // Logging functions
+        function log(type, message, data = null) {
+            const timestamp = new Date().toISOString();
+            const logEntry = {
+                timestamp,
+                message,
+                data: data ? JSON.stringify(data, null, 2) : null
+            };
+            
+            logs[type].push(logEntry);
+            updateLogDisplay(type);
+            
+            if (config.verbose) {
+                console.log(`[${type.toUpperCase()}] ${timestamp}: ${message}`, data || '');
+            }
+        }
+        
+        function updateLogDisplay(type) {
+            const container = document.getElementById(`${type}-logs`);
+            if (container) {
+                const logText = logs[type]
+                    .map(entry => `[${entry.timestamp}] ${entry.message}${entry.data ? '\n' + entry.data : ''}`)
+                    .join('\n\n');
+                container.textContent = logText;
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = `<strong>Status:</strong> ${message}`;
+            log('console', `Status Update: ${message}`);
+        }
+        
+        // Cookie management
+        function getCookies() {
+            const cookies = {};
+            document.cookie.split(';').forEach(cookie => {
+                const [name, value] = cookie.trim().split('=');
+                if (name) cookies[name] = value;
+            });
+            return cookies;
+        }
+        
+        function updateCookieStatus() {
+            const cookies = getCookies();
+            const cookieDiv = document.getElementById('cookie-status');
+            
+            const authCookies = Object.keys(cookies).filter(name => 
+                name.includes('Token') || name.includes('session') || name.includes('auth')
+            );
+            
+            if (authCookies.length === 0) {
+                cookieDiv.innerHTML = '<div class="cookie-info">No authentication cookies found</div>';
+            } else {
+                const cookieHtml = authCookies.map(name => {
+                    const value = cookies[name];
+                    const preview = value ? value.substring(0, 20) + '...' : 'empty';
+                    return `<div class="cookie-info"><strong>${name}:</strong> ${preview}</div>`;
+                }).join('');
+                cookieDiv.innerHTML = cookieHtml;
+            }
+            
+            log('console', 'Cookie status updated', { authCookies, totalCookies: Object.keys(cookies).length });
+        }
+        
+        // Network request wrapper with detailed logging
+        async function makeRequest(url, options = {}) {
+            const startTime = performance.now();
+            const requestId = Math.random().toString(36).substr(2, 9);
+            
+            log('network', `[${requestId}] Starting request to: ${url}`, {
+                method: options.method || 'GET',
+                headers: options.headers,
+                credentials: options.credentials
+            });
+            
+            try {
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    ...options
+                });
+                
+                const duration = performance.now() - startTime;
+                const responseHeaders = {};
+                response.headers.forEach((value, key) => {
+                    responseHeaders[key] = value;
+                });
+                
+                const logData = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: responseHeaders,
+                    url: response.url,
+                    redirected: response.redirected,
+                    duration: Math.round(duration)
+                };
+                
+                log('network', `[${requestId}] Response received: ${response.status} ${response.statusText} (${duration.toFixed(2)}ms)`, logData);
+                
+                // Track redirects
+                if (response.redirected || response.url !== url) {
+                    logs.redirects.push({
+                        from: url,
+                        to: response.url,
+                        status: response.status,
+                        timestamp: new Date().toISOString()
+                    });
+                    updateRedirectChain();
+                }
+                
+                return response;
+            } catch (error) {
+                const duration = performance.now() - startTime;
+                log('errors', `[${requestId}] Request failed: ${error.message}`, {
+                    url,
+                    duration: Math.round(duration),
+                    error: error.stack
+                });
+                throw error;
+            }
+        }
+        
+        function updateRedirectChain() {
+            const chainDiv = document.getElementById('redirect-chain');
+            if (logs.redirects.length === 0) {
+                chainDiv.innerHTML = 'No redirects tracked yet';
+                return;
+            }
+            
+            const chainHtml = logs.redirects.map((redirect, index) => `
+                <div class="redirect-chain">
+                    <strong>Redirect ${index + 1}:</strong> ${redirect.timestamp}<br>
+                    <strong>From:</strong> ${redirect.from}<br>
+                    <strong>To:</strong> ${redirect.to}<br>
+                    <strong>Status:</strong> ${redirect.status}
+                </div>
+            `).join('');
+            
+            chainDiv.innerHTML = chainHtml;
+        }
+        
+        // Test functions
+        async function runHealthCheck() {
+            updateStatus('Running health check...', 'info');
+            
+            try {
+                const response = await makeRequest(`${config.apiUrl}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('Health check passed ✅', 'success');
+                    document.getElementById('health-status').innerHTML = `
+                        <div class="status success">
+                            <strong>Server Status:</strong> Healthy<br>
+                            <strong>Timestamp:</strong> ${data.timestamp || 'N/A'}<br>
+                            <strong>Environment:</strong> ${data.environment || 'Unknown'}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(`Health check failed: ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus(`Health check failed: ${error.message}`, 'error');
+                document.getElementById('health-status').innerHTML = `
+                    <div class="status error">
+                        <strong>Server Status:</strong> Error<br>
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+                log('errors', 'Health check failed', error);
+            }
+        }
+        
+        async function testOAuthFlow() {
+            updateStatus('Testing OAuth flow...', 'info');
+            
+            try {
+                // Step 1: Test OAuth initiation
+                log('console', 'Step 1: Testing OAuth initiation');
+                const oauthUrl = `${config.apiUrl}/auth/google?redirect=/dashboard&plan=pro`;
+                
+                // We can't follow the redirect automatically due to CORS, but we can test the endpoint
+                const response = await makeRequest(oauthUrl);
+                
+                if (response.status === 307 || response.status === 302) {
+                    const location = response.headers.get('location');
+                    if (location && location.includes('accounts.google.com')) {
+                        updateStatus('OAuth initiation successful - redirecting to Google', 'success');
+                        log('console', 'OAuth redirect URL generated successfully', { redirectUrl: location });
+                        
+                        // Extract and validate OAuth parameters
+                        const url = new URL(location);
+                        const params = url.searchParams;
+                        const oauthParams = {
+                            client_id: params.get('client_id'),
+                            redirect_uri: params.get('redirect_uri'),
+                            scope: params.get('scope'),
+                            response_type: params.get('response_type'),
+                            state: params.get('state')
+                        };
+                        
+                        log('console', 'OAuth parameters extracted', oauthParams);
+                        
+                        // Offer to redirect to Google for manual testing
+                        if (confirm('OAuth URL generated successfully. Do you want to proceed with Google authentication? This will redirect you to Google.')) {
+                            window.location.href = location;
+                        }
+                    } else {
+                        throw new Error('Invalid OAuth redirect URL');
+                    }
+                } else {
+                    throw new Error(`Unexpected OAuth response: ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus(`OAuth test failed: ${error.message}`, 'error');
+                log('errors', 'OAuth flow test failed', error);
+            }
+        }
+        
+        async function testProtectedRoute() {
+            updateStatus('Testing protected route access...', 'info');
+            
+            try {
+                const routes = ['/dashboard', '/analysis', '/profile'];
+                
+                for (const route of routes) {
+                    log('console', `Testing protected route: ${route}`);
+                    const response = await makeRequest(`${config.baseUrl}${route}`);
+                    
+                    log('console', `Route ${route} response: ${response.status}`, {
+                        redirected: response.redirected,
+                        finalUrl: response.url
+                    });
+                }
+                
+                updateStatus('Protected route tests completed', 'success');
+            } catch (error) {
+                updateStatus(`Protected route test failed: ${error.message}`, 'error');
+                log('errors', 'Protected route test failed', error);
+            }
+        }
+        
+        async function testTokenRefresh() {
+            updateStatus('Testing token refresh...', 'info');
+            
+            try {
+                const response = await makeRequest(`${config.apiUrl}/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('console', `Token refresh response: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('Token refresh successful', 'success');
+                    log('console', 'Token refresh succeeded', data);
+                } else {
+                    updateStatus(`Token refresh failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`Token refresh error: ${error.message}`, 'error');
+                log('errors', 'Token refresh failed', error);
+            }
+        }
+        
+        async function testLogout() {
+            updateStatus('Testing logout...', 'info');
+            
+            try {
+                const response = await makeRequest(`${config.apiUrl}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('console', `Logout response: ${response.status}`);
+                
+                if (response.ok) {
+                    updateStatus('Logout successful', 'success');
+                    updateCookieStatus(); // Refresh cookie display
+                } else {
+                    updateStatus(`Logout failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`Logout error: ${error.message}`, 'error');
+                log('errors', 'Logout failed', error);
+            }
+        }
+        
+        function clearLogs() {
+            logs.network = [];
+            logs.console = [];
+            logs.errors = [];
+            logs.redirects = [];
+            
+            ['network', 'console', 'errors'].forEach(type => {
+                const container = document.getElementById(`${type}-logs`);
+                if (container) {
+                    container.textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} logging started...\n`;
+                }
+            });
+            
+            document.getElementById('redirect-chain').innerHTML = 'No redirects tracked yet';
+            updateStatus('Logs cleared', 'info');
+        }
+        
+        function exportLogs() {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                testResults: logs,
+                cookies: getCookies(),
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `oauth-test-results-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            updateStatus('Logs exported successfully', 'success');
+        }
+        
+        // Initialize
+        function init() {
+            log('console', 'OAuth Browser Test initialized');
+            updateCookieStatus();
+            
+            // Set up periodic cookie monitoring
+            setInterval(updateCookieStatus, 5000);
+            
+            // Capture unhandled errors
+            window.addEventListener('error', (event) => {
+                log('errors', 'Unhandled JavaScript error', {
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    stack: event.error?.stack
+                });
+            });
+            
+            // Capture console errors
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                log('errors', 'Console error', args);
+                originalConsoleError.apply(console, args);
+            };
+            
+            // Check if we're in an OAuth callback
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('code') || urlParams.has('error')) {
+                log('console', 'OAuth callback detected', {
+                    code: urlParams.get('code') ? 'present' : 'missing',
+                    error: urlParams.get('error'),
+                    state: urlParams.get('state')
+                });
+                
+                updateStatus('OAuth callback detected - processing...', 'info');
+            }
+        }
+        
+        // Start the test suite
+        init();
+        
+        // Auto-run health check on load
+        setTimeout(runHealthCheck, 1000);
+    </script>
+</body>
+</html>

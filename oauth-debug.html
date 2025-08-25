@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth Debug - TrueCheckIA</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .status-box {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #5a67d8; }
+        .debug-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .checklist li:before {
+            content: '⚠️';
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        .checklist li.success:before { content: '✅'; }
+        .checklist li.error:before { content: '❌'; }
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .timestamp { color: #666; font-size: 12px; }
+        .test-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Google OAuth Debug Tool</h1>
+        
+        <div id="status" class="status-box info">
+            Iniciando diagnóstico do Google OAuth...
+        </div>
+
+        <div class="test-section">
+            <h2>1️⃣ Verificação de Configuração</h2>
+            <ul class="checklist" id="config-checks">
+                <li>Verificando variáveis de ambiente...</li>
+                <li>Verificando URLs de callback...</li>
+                <li>Verificando Client ID do Google...</li>
+                <li>Verificando modo de ambiente (dev/prod)...</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>2️⃣ Teste de Fluxo OAuth</h2>
+            <button onclick="testOAuthFlow()">🚀 Iniciar Teste OAuth</button>
+            <button onclick="testWithConsent()">🔄 Testar com Reconsentimento</button>
+            <button onclick="testDirectApi()">📡 Testar API Diretamente</button>
+            <div id="oauth-result" class="debug-info" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3️⃣ Diagnóstico do Console Google</h2>
+            <div class="status-box warning">
+                <h3>⚠️ Verificações Necessárias no Google Console:</h3>
+                <ol>
+                    <li><strong>Status do App OAuth:</strong>
+                        <ul>
+                            <li>Acesse: <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
+                            <li>Verifique se o app está em modo "Testing" ou "Published"</li>
+                            <li>Se estiver em "Testing", adicione seu email como test user</li>
+                        </ul>
+                    </li>
+                    <li><strong>OAuth Consent Screen:</strong>
+                        <ul>
+                            <li>Verifique se todos os campos obrigatórios estão preenchidos</li>
+                            <li>Confirme que o app name está correto</li>
+                            <li>Verifique se os scopes estão configurados</li>
+                        </ul>
+                    </li>
+                    <li><strong>Quotas e Limites:</strong>
+                        <ul>
+                            <li>Verifique se não excedeu quotas de API</li>
+                            <li>Confirme que a API está habilitada</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>4️⃣ Log de Eventos</h2>
+            <div id="event-log"></div>
+            <button onclick="clearLogs()">🗑️ Limpar Logs</button>
+        </div>
+
+        <div class="test-section">
+            <h2>5️⃣ URLs Geradas</h2>
+            <div class="debug-info">
+                <strong>OAuth Authorization URL:</strong>
+                <div id="auth-url">Aguardando geração...</div>
+                <br>
+                <strong>Callback URL Esperada:</strong>
+                <div id="callback-url">Aguardando...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({ timestamp, message, type });
+            
+            const logContainer = document.getElementById('event-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            
+            // Auto-scroll
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function clearLogs() {
+            logs.length = 0;
+            document.getElementById('event-log').innerHTML = '';
+            addLog('Logs limpos', 'info');
+        }
+        
+        async function checkConfiguration() {
+            addLog('Iniciando verificação de configuração...', 'info');
+            
+            try {
+                // Check environment
+                const envResponse = await fetch('/api/debug/env');
+                const envData = await envResponse.json();
+                
+                const checks = document.getElementById('config-checks');
+                checks.innerHTML = '';
+                
+                // Check Google Client ID
+                const hasClientId = envData.GOOGLE_CLIENT_ID && envData.GOOGLE_CLIENT_ID !== 'undefined';
+                checks.innerHTML += `
+                    <li class="${hasClientId ? 'success' : 'error'}">
+                        Google Client ID: ${hasClientId ? '✅ Configurado' : '❌ Não encontrado'}
+                        ${hasClientId ? `<br><small>${envData.GOOGLE_CLIENT_ID.substring(0, 20)}...</small>` : ''}
+                    </li>
+                `;
+                
+                // Check Google Client Secret
+                const hasSecret = envData.GOOGLE_CLIENT_SECRET && envData.GOOGLE_CLIENT_SECRET !== 'undefined';
+                checks.innerHTML += `
+                    <li class="${hasSecret ? 'success' : 'error'}">
+                        Google Client Secret: ${hasSecret ? '✅ Configurado' : '❌ Não encontrado'}
+                    </li>
+                `;
+                
+                // Check Callback URL
+                const callbackUrl = envData.GOOGLE_CALLBACK_URL || 
+                    (envData.NODE_ENV === 'production' ? 
+                        'https://truecheckia.com/api/auth/google/callback' : 
+                        'http://localhost:3000/api/auth/google/callback');
+                
+                checks.innerHTML += `
+                    <li class="success">
+                        Callback URL: ${callbackUrl}
+                    </li>
+                `;
+                
+                document.getElementById('callback-url').textContent = callbackUrl;
+                
+                // Check Environment
+                checks.innerHTML += `
+                    <li class="success">
+                        Ambiente: ${envData.NODE_ENV || 'development'}
+                    </li>
+                `;
+                
+                // Check API URLs
+                const baseUrl = envData.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+                const apiUrl = envData.NEXT_PUBLIC_API_URL || `${baseUrl}/api`;
+                
+                checks.innerHTML += `
+                    <li class="success">
+                        Base URL: ${baseUrl}<br>
+                        API URL: ${apiUrl}
+                    </li>
+                `;
+                
+                addLog('Configuração verificada com sucesso', 'success');
+                
+                // Test API endpoint
+                const testResponse = await fetch('/api/debug/client-test');
+                const testData = await testResponse.json();
+                
+                if (testData.authUrl) {
+                    document.getElementById('auth-url').textContent = testData.authUrl;
+                    addLog('URL de autorização gerada com sucesso', 'success');
+                }
+                
+            } catch (error) {
+                addLog(`Erro ao verificar configuração: ${error.message}`, 'error');
+                document.getElementById('status').className = 'status-box error';
+                document.getElementById('status').textContent = 'Erro na verificação inicial';
+            }
+        }
+        
+        async function testOAuthFlow() {
+            addLog('Iniciando teste do fluxo OAuth...', 'info');
+            document.getElementById('status').className = 'status-box warning';
+            document.getElementById('status').textContent = 'Testando fluxo OAuth...';
+            
+            try {
+                // Create a popup window for OAuth
+                const width = 500;
+                const height = 600;
+                const left = window.screen.width / 2 - width / 2;
+                const top = window.screen.height / 2 - height / 2;
+                
+                const popup = window.open(
+                    '/api/auth/google?test=true',
+                    'google-oauth-test',
+                    `width=${width},height=${height},left=${left},top=${top}`
+                );
+                
+                addLog('Popup OAuth aberto', 'info');
+                
+                // Monitor popup
+                const checkInterval = setInterval(() => {
+                    try {
+                        if (popup.closed) {
+                            clearInterval(checkInterval);
+                            addLog('Popup fechado pelo usuário', 'warning');
+                            checkAuthStatus();
+                        } else if (popup.location.href.includes('/api/auth/google/callback')) {
+                            clearInterval(checkInterval);
+                            const url = new URL(popup.location.href);
+                            
+                            if (url.searchParams.get('error')) {
+                                const error = url.searchParams.get('error');
+                                const errorDesc = url.searchParams.get('error_description');
+                                addLog(`Erro OAuth: ${error} - ${errorDesc || 'Sem descrição'}`, 'error');
+                                
+                                document.getElementById('oauth-result').style.display = 'block';
+                                document.getElementById('oauth-result').innerHTML = `
+                                    <strong>❌ Erro no OAuth:</strong><br>
+                                    Tipo: ${error}<br>
+                                    ${errorDesc ? `Descrição: ${errorDesc}<br>` : ''}
+                                    <br>
+                                    <strong>Possíveis causas:</strong><br>
+                                    ${getErrorSuggestions(error)}
+                                `;
+                            } else if (url.searchParams.get('code')) {
+                                addLog('Código de autorização recebido!', 'success');
+                                popup.close();
+                                checkAuthStatus();
+                            }
+                        }
+                    } catch (e) {
+                        // Cross-origin, continue monitoring
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                addLog(`Erro ao iniciar OAuth: ${error.message}`, 'error');
+                document.getElementById('status').className = 'status-box error';
+                document.getElementById('status').textContent = 'Erro ao iniciar OAuth';
+            }
+        }
+        
+        async function testWithConsent() {
+            addLog('Forçando reconsentimento...', 'info');
+            window.location.href = '/api/auth/google?prompt=consent';
+        }
+        
+        async function testDirectApi() {
+            addLog('Testando API diretamente...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth/google', {
+                    redirect: 'manual'
+                });
+                
+                if (response.type === 'opaqueredirect' || response.status === 307) {
+                    addLog('API retornou redirecionamento (esperado)', 'success');
+                    
+                    // Get redirect URL from headers if possible
+                    const location = response.headers.get('Location');
+                    if (location) {
+                        addLog(`Redirecionando para: ${location}`, 'info');
+                        document.getElementById('auth-url').textContent = location;
+                    }
+                } else {
+                    addLog(`Status inesperado: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                addLog(`Erro ao testar API: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkAuthStatus() {
+            addLog('Verificando status de autenticação...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth/validate');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    addLog(`✅ Autenticado como: ${data.user.email}`, 'success');
+                    document.getElementById('status').className = 'status-box success';
+                    document.getElementById('status').innerHTML = `
+                        ✅ Login bem-sucedido!<br>
+                        Email: ${data.user.email}<br>
+                        Provider: ${data.user.authProvider || 'LOCAL'}
+                    `;
+                } else {
+                    addLog('Não autenticado', 'warning');
+                    document.getElementById('status').className = 'status-box warning';
+                    document.getElementById('status').textContent = 'Não autenticado - teste novamente';
+                }
+            } catch (error) {
+                addLog(`Erro ao verificar autenticação: ${error.message}`, 'error');
+            }
+        }
+        
+        function getErrorSuggestions(error) {
+            const suggestions = {
+                'access_denied': `
+                    • O usuário cancelou a autorização<br>
+                    • O app está em modo "Testing" e você não está na lista de test users<br>
+                    • Verifique o OAuth consent screen no Google Console<br>
+                    • O app pode estar bloqueado por políticas organizacionais
+                `,
+                'redirect_uri_mismatch': `
+                    • A URI de callback não corresponde às configuradas no Google Console<br>
+                    • Verifique se está usando http vs https corretamente<br>
+                    • Confirme se está usando www ou não-www consistentemente
+                `,
+                'invalid_client': `
+                    • Client ID ou Secret incorretos<br>
+                    • Credenciais podem ter sido revogadas<br>
+                    • Verifique as variáveis de ambiente
+                `,
+                'invalid_scope': `
+                    • Os scopes solicitados não foram aprovados<br>
+                    • Verifique os scopes no OAuth consent screen
+                `,
+                'server_error': `
+                    • Erro temporário do Google<br>
+                    • Tente novamente em alguns minutos
+                `
+            };
+            
+            return suggestions[error] || 'Erro desconhecido - verifique os logs do servidor';
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            addLog('Página carregada', 'info');
+            checkConfiguration();
+        });
+        
+        // Listen for OAuth callback
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'oauth-callback') {
+                addLog(`Callback recebido: ${JSON.stringify(event.data)}`, 'info');
+                checkAuthStatus();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+
+> truecheckia-nextjs@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.0
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.232:3000
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ ✓ Starting...
+ ○ (pwa) PWA support is disabled.
+ ✓ Ready in 2.5s
+ ○ Compiling /api/email/test ...
+ ✓ Compiled /api/email/test in 793ms (349 modules)
+ GET /api/email/test?type=welcome&email=pedro.teste@truecheckia.com 200 in 1993ms
+ GET /api/email/test?type=subscription-confirmation&email=pedro.teste@truecheckia.com 200 in 1032ms
+ GET /api/email/test?type=credits-low&email=pedro.teste@truecheckia.com 200 in 910ms
+ GET /api/email/test?type=reset-password&email=pedro.teste@truecheckia.com 200 in 816ms
+ GET /api/email/test?type=analysis-complete&email=pedro.teste@truecheckia.com 200 in 818ms
+ ○ Compiling /api/auth/register ...
+ ✓ Compiled /api/auth/register in 569ms (443 modules)
+API Error: Error [AppError]: Invalid JSON body
+    at validateRequest (app/lib/middleware.ts:106:11)
+    at async registerHandler (app/api/auth/register/route.ts:14:52)
+    at async eval (app/lib/middleware.ts:141:14)
+  104 |       )
+  105 |     }
+> 106 |     throw new AppError('Invalid JSON body', 400, ERROR_CODES.VALIDATION_ERROR)
+      |           ^
+  107 |   }
+  108 | }
+  109 | {
+  statusCode: 400,
+  code: 'VALIDATION_ERROR',
+  isOperational: true
+}
+ POST /api/auth/register 400 in 750ms
+API Error: Error [AppError]: Invalid JSON body
+    at validateRequest (app/lib/middleware.ts:106:11)
+    at async registerHandler (app/api/auth/register/route.ts:14:52)
+    at async eval (app/lib/middleware.ts:141:14)
+  104 |       )
+  105 |     }
+> 106 |     throw new AppError('Invalid JSON body', 400, ERROR_CODES.VALIDATION_ERROR)
+      |           ^
+  107 |   }
+  108 | }
+  109 | {
+  statusCode: 400,
+  code: 'VALIDATION_ERROR',
+  isOperational: true
+}
+ POST /api/auth/register 400 in 54ms
+ ✓ Compiled /api/auth/forgot-password in 129ms (445 modules)
+API Error: Error [PrismaClientInitializationError]: 
+Invalid `prisma.user.findUnique()` invocation:
+
+
+Can't reach database server at `ep-lingering-truth-ae6n5s9w-pooler.c-2.us-east-2.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-lingering-truth-ae6n5s9w-pooler.c-2.us-east-2.aws.neon.tech:5432`.
+    at async forgotPasswordHandler (app/api/auth/forgot-password/route.ts:13:16)
+    at async eval (app/lib/middleware.ts:141:14)
+  11 |
+  12 |   // Find user
+> 13 |   const user = await prisma.user.findUnique({
+     |                ^
+  14 |     where: { email },
+  15 |   })
+  16 | {
+  clientVersion: '6.14.0',
+  errorCode: undefined,
+  retryable: undefined
+}
+ POST /api/auth/forgot-password 500 in 5351ms
+[?25h

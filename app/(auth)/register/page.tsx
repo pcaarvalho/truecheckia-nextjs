@@ -46,14 +46,23 @@ function RegisterForm() {
   const searchParams = useSearchParams()
   const { register: registerUser } = useAuth()
 
-  // Handle plan and message parameters
+  // Handle plan, checkout success, and message parameters
   useEffect(() => {
     const message = searchParams.get('message')
     const source = searchParams.get('source')
+    const checkout = searchParams.get('checkout')
+    const sessionId = searchParams.get('session_id')
+    const plan = searchParams.get('plan')
     
     if (message) {
       toast.success('Welcome!', {
         description: decodeURIComponent(message),
+      })
+    }
+    
+    if (checkout === 'success' && sessionId) {
+      toast.success('Payment Successful!', {
+        description: `Your ${plan} subscription is ready! Complete your registration to access your account.`,
       })
     }
   }, [searchParams])

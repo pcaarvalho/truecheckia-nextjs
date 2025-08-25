@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-08-21T19:47:46.515Z",
+  "environment": "development",
+  "results": {
+    "products": {
+      "pro": {
+        "id": "prod_SuTPPIoGxL80kB",
+        "name": "TrueCheckIA Pro"
+      },
+      "enterprise": {
+        "id": "prod_SuTP7CW20HVsi2",
+        "name": "TrueCheckIA Enterprise"
+      }
+    },
+    "prices": {
+      "proMonthly": {
+        "id": "price_1RyeSbPfgG67ZB4mPv32z4De",
+        "amount": 1900
+      },
+      "proYearly": {
+        "id": "price_1RyeSbPfgG67ZB4mAvKDENFk",
+        "amount": 18000
+      },
+      "enterpriseMonthly": {
+        "id": "price_1RyeScPfgG67ZB4mKlNALpEV",
+        "amount": 9900
+      },
+      "enterpriseYearly": {
+        "id": "price_1RyeScPfgG67ZB4mOffl0Rya",
+        "amount": 99000
+      }
+    }
+  }
+}

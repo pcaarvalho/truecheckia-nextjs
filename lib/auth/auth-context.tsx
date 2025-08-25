@@ -48,6 +48,7 @@ interface AuthContextType {
   register: (data: any) => Promise<RegisterResponse | void>
   logout: () => Promise<void>
   updateUser: (user: User) => void
+  loginWithGoogle: (redirectPath?: string, plan?: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -276,6 +277,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser))
   }
 
+  const loginWithGoogle = (redirectPath = '/dashboard', plan?: string) => {
+    try {
+      console.log('[AuthContext] Initiating Google OAuth login', { redirectPath, plan })
+      
+      const baseUrl = window.location.origin
+      const params = new URLSearchParams({
+        redirect: redirectPath,
+      })
+      
+      if (plan) {
+        params.append('plan', plan)
+      }
+      
+      const googleOAuthUrl = `${baseUrl}/api/auth/google?${params.toString()}`
+      
+      console.log('[AuthContext] Redirecting to Google OAuth:', googleOAuthUrl)
+      window.location.href = googleOAuthUrl
+    } catch (error) {
+      console.error('[AuthContext] Error initiating Google OAuth:', error)
+      throw error
+    }
+  }
+
   // Proactive token refresh
   const refreshTokenIfNeeded = useCallback(async () => {
     if (!user) return
@@ -318,6 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     updateUser,
+    loginWithGoogle,
   }
 
   return (

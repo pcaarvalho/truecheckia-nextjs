@@ -1,0 +1,81 @@
+{
+  "mcps": {
+    "postgres-dev": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://neondb_owner:npg_Hef0mJsrbu6Y@ep-lingering-truth-ae6n5s9w-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+        "MCP_NAME": "PostgreSQL Dev (Neon)",
+        "MCP_DESCRIPTION": "Development database on Neon cloud"
+      }
+    },
+    "postgres-prod": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://neondb_owner:npg_Hef0mJsrbu6Y@ep-late-resonance-aesr6j4v-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+        "MCP_NAME": "PostgreSQL Prod (Neon)",
+        "MCP_DESCRIPTION": "Production database on Neon cloud"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_YOUR_TOKEN_HERE",
+        "MCP_NAME": "GitHub Integration",
+        "MCP_DESCRIPTION": "GitHub API for PRs, issues, and code management"
+      }
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "env": {
+        "HEADLESS": "false",
+        "DEFAULT_URL": "http://localhost:3000",
+        "MCP_NAME": "Browser Automation",
+        "MCP_DESCRIPTION": "Puppeteer for E2E testing and screenshots"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {
+        "MEMORY_PATH": "./.claude/memory",
+        "MCP_NAME": "Project Memory",
+        "MCP_DESCRIPTION": "Persistent memory across sessions"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem"
+      ],
+      "env": {
+        "ALLOWED_PATHS": "/Users/pedro/Projetos/Producao/truecheckia-nextjs",
+        "MCP_NAME": "File System",
+        "MCP_DESCRIPTION": "Enhanced file system operations"
+      }
+    }
+  },
+  "version": "1.0.0",
+  "description": "TrueCheckIA MCP Configuration",
+  "created": "2025-08-21",
+  "author": "Pedro & Claude"
+}

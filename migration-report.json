@@ -1,0 +1,27 @@
+{
+  "migration_date": "2025-08-21T03:21:41.037Z",
+  "database_type": "PostgreSQL (Neon)",
+  "status": "PARTIAL_SUCCESS",
+  "environment": "development",
+  "database_url": "postgresql://neondb_owner:***@ep-lingering-truth-ae6n5s9w-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require&pgbouncer=true&connection_limit=10&pool_timeout=20",
+  "validations": {
+    "connection": true,
+    "schema": true,
+    "operations": true,
+    "environment": true,
+    "migrations": true,
+    "health_endpoint": false,
+    "backup_config": true
+  },
+  "statistics": {
+    "users": 0,
+    "analyses": 0,
+    "subscriptions": 0
+  },
+  "recommendations": [
+    "Algumas validações falharam - verificar logs acima",
+    "Corrigir endpoint de health check para monitoramento adequado",
+    "Testar em ambiente de produção antes do deploy",
+    "Configurar monitoramento e alertas para produção"
+  ]
+}
