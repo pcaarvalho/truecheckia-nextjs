@@ -3,7 +3,7 @@
  * Provides comprehensive tracking for TrueCheckIA
  */
 
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-XXXXXXXXXX'
+export const GA_MEASUREMENT_ID = 'G-9QD8DCH6PV'
 
 // GA4 Event Types
 export interface GAEvent {
