@@ -100,6 +100,12 @@ export function PricingCard() {
     // Track subscription initiated
     analytics.trackSubscription.initiated({
       plan: planKey,
+      price: price / 100 // Convert cents to dollars
+    })
+    
+    // Track additional custom event with full details
+    analytics.trackCustomEvent('subscription_initiated_detailed', {
+      plan: planKey,
       billing_cycle: billingCycle,
       price: price,
       currency: 'USD',
