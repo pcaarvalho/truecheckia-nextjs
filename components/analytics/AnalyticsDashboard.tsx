@@ -71,7 +71,7 @@ export function AnalyticsDashboard() {
     {
       name: 'Google Analytics 4',
       id: GA_MEASUREMENT_ID,
-      status: GA_MEASUREMENT_ID && GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX' ? 'active' : 'inactive',
+      status: GA_MEASUREMENT_ID ? 'active' : 'inactive',
       enabled: true,
       icon: <BarChart3 className="h-4 w-4" />,
       description: 'Website analytics and user behavior tracking'
