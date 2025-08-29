@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getFeaturedPosts } from '@/app/lib/blog/posts'
+import { getFeaturedPosts } from '@/lib/blog/posts'
 
 export async function BlogSection() {
   const featuredPosts = await getFeaturedPosts()

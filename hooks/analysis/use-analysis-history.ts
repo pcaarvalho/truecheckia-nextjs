@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { apiClient, AnalysisResult, ApiError } from '@/app/lib/api/client'
+import { apiClient, AnalysisResult, ApiError } from '@/lib/api/client'
 import { toast } from 'sonner'
 
 interface AnalysisHistoryState {

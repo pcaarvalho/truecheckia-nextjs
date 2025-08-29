@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
+import { withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
 
 async function googleAuthHandler(request: NextRequest): Promise<NextResponse> {
   try {

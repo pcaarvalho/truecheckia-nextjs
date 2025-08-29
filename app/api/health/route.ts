@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '../../lib/prisma'
-import { withErrorHandler, handleOptions } from '../../lib/middleware'
+import { prisma } from '@/lib/prisma'
+import { withErrorHandler, handleOptions } from '@/lib/middleware'
 
 async function healthCheckHandler(): Promise<NextResponse> {
   try {

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { refreshAccessToken, isTokenNearExpiry } from '@/app/lib/auth-client'
+import { refreshAccessToken, isTokenNearExpiry } from '@/lib/auth-client'
 
 interface User {
   id: string
@@ -12,6 +12,9 @@ interface User {
   credits?: number
   role?: string
   emailVerified?: boolean
+  googleId?: string | null
+  createdAt?: string | Date
+  stripeCustomerId?: string | null
 }
 
 interface LoginResponse {
@@ -119,7 +122,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let errorMessage = 'Login failed'
         try {
           const errorData = await response.json()
-          errorMessage = errorData?.message || errorData?.error || 'Login failed'
+          // Handle different error response formats
+          if (typeof errorData?.error === 'object') {
+            errorMessage = errorData.error.message || 'Login failed'
+          } else if (typeof errorData?.error === 'string') {
+            errorMessage = errorData.error
+          } else {
+            errorMessage = errorData?.message || 'Login failed'
+          }
         } catch (e) {
           // If parsing JSON fails, use default message
         }

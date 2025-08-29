@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createResponse, withErrorHandler, handleOptions } from '@/app/lib/middleware'
+import { createResponse, withErrorHandler, handleOptions } from '@/lib/middleware'
 
 async function logoutHandler(request: NextRequest): Promise<NextResponse> {
   // In a production app, you might want to:

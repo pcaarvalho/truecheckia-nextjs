@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createCheckoutSession, createOrRetrieveCustomer, STRIPE_PRICES } from '@/lib/stripe/client';
-import { withErrorHandler, authenticateRequest, createResponse, createErrorResponse, AppError, ERROR_CODES } from '../../../lib/middleware';
+import { withErrorHandler, authenticateRequest, createResponse, createErrorResponse, AppError, ERROR_CODES } from '@/lib/middleware';
 import { z } from 'zod';
 
 const checkoutSchema = z.object({

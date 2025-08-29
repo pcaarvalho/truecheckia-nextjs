@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateTokens, comparePassword } from '@/lib/auth'
-import { validateRequest, createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
-import { loginSchema, type LoginInput } from '@/app/lib/schemas'
+import { generateTokensEdge } from '@/lib/auth-edge'
+import { comparePassword } from '@/lib/auth'
+import { validateRequest, createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { loginSchema, type LoginInput } from '@/lib/schemas'
 
 async function loginHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body
@@ -39,7 +40,7 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
   }
 
   // Generate tokens (email verification no longer required)
-  const { accessToken, refreshToken } = generateTokens(user)
+  const { accessToken, refreshToken } = await generateTokensEdge(user)
 
   // Create response with user data and tokens
   const response = createResponse({

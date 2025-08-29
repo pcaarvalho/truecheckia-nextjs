@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/auth/use-auth'
+import { GoogleSignInButton } from '@/components/auth/google-signin-button'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -25,7 +26,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -34,7 +35,6 @@ export default function LoginPage() {
 
   // Handle intended plan after login
   useEffect(() => {
-    const intendedPlan = searchParams.get('plan')
     const message = searchParams.get('message')
     
     if (message) {
@@ -70,15 +70,16 @@ export default function LoginPage() {
         })
         router.push('/dashboard')
       }
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = 'Please check your credentials and try again.'
       let title = 'Login failed'
       
-      if (error.message) {
+      if (error instanceof Error) {
         errorMessage = error.message
-      } else if (error.message === 'NETWORK_ERROR') {
-        errorMessage = 'Connection error. Please check your internet and try again.'
-        title = 'Connection error'
+        if (error.message === 'NETWORK_ERROR') {
+          errorMessage = 'Connection error. Please check your internet and try again.'
+          title = 'Connection error'
+        }
       }
       
       toast.error(title, {
@@ -200,21 +201,21 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Google Sign In - TODO: Implement GoogleSignInButton */}
+          {/* Google Sign In */}
           <div className="mb-8">
-            <Button
+            <GoogleSignInButton
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
-              disabled={isLoading}
-            >
-              Sign in with Google
-            </Button>
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              size="default"
+              redirectPath={searchParams.get('redirect') || '/dashboard'}
+              plan={searchParams.get('plan') || undefined}
+            />
           </div>
 
           {/* Sign up link */}
           <div className="text-center">
             <p className="text-purple-200">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
                 href="/register"
                 className="text-white font-semibold hover:text-purple-300 transition-colors"
@@ -236,5 +237,20 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
+          <Loader2 className="w-8 h-8 text-white animate-spin mx-auto mb-4" />
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

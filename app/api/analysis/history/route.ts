@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { createResponse, withErrorHandler, handleOptions, authenticateRequest } from '../../../lib/middleware'
+import { prisma } from '@/lib/prisma'
+import { createResponse, withErrorHandler, handleOptions, authenticateRequest } from '@/lib/middleware'
 
 async function getAnalysisHistoryHandler(request: NextRequest): Promise<NextResponse> {
   // Authenticate user

@@ -107,9 +107,9 @@ async function main() {
   const startTime = Date.now();
   let success = false;
   
-  log('=' * 60, 'blue');
+  log('='.repeat(60), 'blue');
   log('🧪 E2E Authentication Test Suite', 'blue');
-  log('=' * 60, 'blue');
+  log('='.repeat(60), 'blue');
   
   try {
     // Setup
@@ -138,7 +138,7 @@ async function main() {
     
     // Summary
     const duration = Date.now() - startTime;
-    log('\n' + '=' * 60, 'blue');
+    log('\n' + '='.repeat(60), 'blue');
     log(`⏱️  Total execution time: ${(duration / 1000).toFixed(2)}s`, 'cyan');
     
     if (success) {
@@ -149,7 +149,7 @@ async function main() {
       log('🔍 Check the error messages above and test-results/ for details', 'blue');
     }
     
-    log('=' * 60, 'blue');
+    log('='.repeat(60), 'blue');
   }
   
   process.exit(success ? 0 : 1);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyAccessToken, type JWTPayload } from './lib/auth';
+import { verifyAccessTokenEdge, type JWTPayload } from './lib/auth-edge';
 
 // Protected routes that require authentication
 const protectedRoutes = ['/dashboard', '/analysis', '/history', '/profile', '/settings'];
@@ -11,7 +11,7 @@ const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/auth-tes
 // Routes that should never redirect (to prevent loops)
 const noRedirectRoutes = ['/api', '/_next', '/favicon.ico', '/manifest.json'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   console.log('[Middleware] Processing request for:', pathname);
@@ -53,7 +53,7 @@ export function middleware(request: NextRequest) {
   
   if (token) {
     try {
-      tokenPayload = verifyAccessToken(token);
+      tokenPayload = await verifyAccessTokenEdge(token);
       isValidToken = true;
       console.log('[Middleware] Token validation successful:', {
         userId: tokenPayload.userId,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { apiClient, AnalysisRequest, AnalysisResult, ApiError } from '@/app/lib/api/client'
+import { apiClient, AnalysisRequest, AnalysisResult, ApiError } from '@/lib/api/client'
 import { useAuth } from '@/hooks/auth/use-auth'
 import { toast } from 'sonner'
 

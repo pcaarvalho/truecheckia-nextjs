@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
+import { withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
 import { prisma } from '@/lib/prisma'
-import { generateTokens } from '@/lib/auth'
+import { generateTokensEdge } from '@/lib/auth-edge'
 
 interface GoogleUserInfo {
   id: string
@@ -196,7 +196,7 @@ async function googleCallbackHandler(request: NextRequest): Promise<NextResponse
     }
 
     // Generate JWT tokens
-    const { accessToken, refreshToken } = generateTokens(user)
+    const { accessToken, refreshToken } = await generateTokensEdge(user)
     
     // Create redirect URL with success
     let redirectUrl: string

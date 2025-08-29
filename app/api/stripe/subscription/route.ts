@@ -6,7 +6,7 @@ import {
   reactivateSubscription,
   createBillingPortalSession 
 } from '@/lib/stripe/client';
-import { withErrorHandler, authenticateRequest, createResponse, AppError, ERROR_CODES, validateRequest } from '../../../lib/middleware';
+import { withErrorHandler, authenticateRequest, createResponse, AppError, ERROR_CODES, validateRequest } from '@/lib/middleware';
 import { z } from 'zod';
 
 const subscriptionActionSchema = z.object({
@@ -21,7 +21,7 @@ async function getSubscriptionHandler(request: NextRequest): Promise<NextRespons
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      Subscription: {
+      subscriptions: {
         orderBy: { createdAt: 'desc' },
         take: 1,
       },

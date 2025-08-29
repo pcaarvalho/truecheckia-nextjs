@@ -1,3 +1,11 @@
+const withMDX = require('@next/mdx')({
+  extension: /\.mdx?$/,
+  options: {
+    remarkPlugins: [],
+    rehypePlugins: [],
+  },
+});
+
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
@@ -11,6 +19,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   experimental: {
     optimizePackageImports: [
       '@radix-ui/react-accordion',
@@ -67,7 +76,7 @@ const nextConfig = {
   // Enable strict mode
   reactStrictMode: true,
   
-  // Temporariamente ignorar erros ESLint durante build
+  // ESLint temporarily disabled to fix chunk loading error
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -78,4 +87,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(withPWA(nextConfig));
+module.exports = withBundleAnalyzer(withPWA(withMDX(nextConfig)));

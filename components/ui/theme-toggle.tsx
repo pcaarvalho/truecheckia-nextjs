@@ -65,19 +65,6 @@ export function ThemeToggle() {
             <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
           )}
         </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => setTheme("system")}
-          className="cursor-pointer"
-        >
-          <div className="mr-2 h-4 w-4 relative">
-            <Sun className="absolute h-3 w-3 top-0 left-0" />
-            <Moon className="absolute h-3 w-3 bottom-0 right-0" />
-          </div>
-          <span>System</span>
-          {theme === "system" && (
-            <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
-          )}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

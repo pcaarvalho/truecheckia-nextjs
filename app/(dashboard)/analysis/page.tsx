@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/auth/use-auth'
 import { useAnalysis } from '@/hooks/analysis/use-analysis'
 import { useAnalysisHistory } from '@/hooks/analysis/use-analysis-history'
 import { Button } from '@/components/ui/button'
+import { CheckoutButton } from '@/components/stripe/checkout-button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -12,20 +13,17 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Sparkles,
   FileText, 
-  Zap,
   AlertCircle,
   CheckCircle,
   Clock,
-  TrendingUp,
   BarChart3,
   RefreshCw
 } from 'lucide-react'
-import { toast } from 'sonner'
 import Header from '@/components/layout/header/header'
 
 export default function AnalysisPage() {
   const { user } = useAuth()
-  const { result, isAnalyzing, progress, analyzeText, resetAnalysis } = useAnalysis()
+  const { result, isAnalyzing, progress, analyzeText } = useAnalysis()
   const { analyses, stats, refreshHistory, isLoading: historyLoading } = useAnalysisHistory(1, 5)
   const [text, setText] = useState('')
   const [language, setLanguage] = useState<'pt' | 'en'>('pt')
@@ -42,14 +40,6 @@ export default function AnalysisPage() {
     return confidence.charAt(0).toUpperCase() + confidence.slice(1).toLowerCase()
   }
 
-  const getConfidenceColor = (confidence: string) => {
-    switch (confidence.toUpperCase()) {
-      case 'HIGH': return 'text-green-600'
-      case 'MEDIUM': return 'text-yellow-600'
-      case 'LOW': return 'text-red-600'
-      default: return 'text-gray-600'
-    }
-  }
 
   const getConfidenceBadgeVariant = (confidence: string) => {
     switch (confidence.toUpperCase()) {
@@ -290,9 +280,20 @@ export default function AnalysisPage() {
                 <div className="text-xs text-gray-500 mb-4">
                   Plan: {user?.plan || 'FREE'}
                 </div>
-                <Button variant="outline" size="sm" className="w-full">
-                  Upgrade Plan
-                </Button>
+                {user?.plan === 'FREE' ? (
+                  <CheckoutButton
+                    plan="PRO"
+                    interval="monthly"
+                    isAuthenticated={true}
+                    buttonText="Upgrade to Pro"
+                    variant="outline"
+                    size="sm"
+                  />
+                ) : (
+                  <Button variant="outline" size="sm" className="w-full" disabled>
+                    Current Plan
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

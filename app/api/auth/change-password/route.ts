@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { hashPassword, comparePassword } from '../../../lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { changePasswordSchema, type ChangePasswordInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { hashPassword, comparePassword } from '@/lib/auth'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '@/lib/middleware'
+import { changePasswordSchema, type ChangePasswordInput } from '@/lib/schemas'
 
 async function changePasswordHandler(request: NextRequest): Promise<NextResponse> {
   // Authenticate user

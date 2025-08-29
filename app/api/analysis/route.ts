@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../lib/prisma'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '../../lib/middleware'
-import { analyzeTextSchema, type AnalyzeTextInput } from '../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '@/lib/middleware'
+import { analyzeTextSchema, type AnalyzeTextInput } from '@/lib/schemas'
 import { Plan } from '@prisma/client'
 
 // Enhanced analysis function with more sophisticated heuristics

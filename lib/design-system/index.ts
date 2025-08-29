@@ -25,13 +25,9 @@ export type {
   ButtonProps,
 } from '@/components/ui/button'
 
-export type {
-  CardProps,
-} from '@/components/ui/card'
+// Card component types are not exported
 
-export type {
-  InputProps,
-} from '@/components/ui/input'
+// Input component types are not exported
 
 // Design System Utilities
 export const designSystem = {

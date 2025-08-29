@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createCheckoutSession, createOrRetrieveCustomer, STRIPE_PRICES } from '@/lib/stripe/client';
-import { withErrorHandler, createResponse, createErrorResponse, AppError, ERROR_CODES } from '../../../lib/middleware';
+import { stripe, createCheckoutSession, createOrRetrieveCustomer, STRIPE_PRICES } from '@/lib/stripe/client';
+import { withErrorHandler, createResponse, createErrorResponse, AppError, ERROR_CODES } from '@/lib/middleware';
 import { z } from 'zod';
 
 const publicCheckoutSchema = z.object({
@@ -33,7 +33,7 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
     console.log('Using price ID:', priceId);
 
     // Check if user exists
-    let user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email },
     });
 
@@ -79,40 +79,13 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
       baseUrl
     });
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      customer: customer.id,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        userId: user?.id || 'pending',
-        plan,
-        email,
-        isPublicCheckout: 'true',
-      },
-      subscription_data: {
-        metadata: {
-          userId: user?.id || 'pending',
-          plan,
-          email,
-          isPublicCheckout: 'true',
-        },
-      },
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
-      customer_update: {
-        address: 'auto',
-        name: 'auto',
-      },
-      // For users who don't have an account yet, collect their email
-      customer_email: user ? undefined : email,
+    const checkoutSession = await createCheckoutSession({
+      priceId,
+      customerId: customer.id,
+      userId: user?.id || 'pending',
+      plan,
+      successUrl,
+      cancelUrl,
     });
 
     console.log('Checkout session created:', {
@@ -144,9 +117,6 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
 }
 
 export const POST = withErrorHandler(createPublicCheckoutSessionHandler);
-
-// Import stripe here to avoid circular dependency
-const { stripe } = require('@/lib/stripe/client');
 
 async function getPublicCheckoutSessionHandler(request: NextRequest): Promise<NextResponse> {
   const searchParams = request.nextUrl.searchParams;

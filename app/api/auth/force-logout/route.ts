@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createResponse, withErrorHandler, handleOptions } from '../../../lib/middleware'
+import { createResponse, withErrorHandler, handleOptions } from '@/lib/middleware'
 
 async function forceLogoutHandler(_request: NextRequest): Promise<NextResponse> {
   // Create response with success message

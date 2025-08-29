@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { generateTokens } from '../../../lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { verifyEmailSchema, type VerifyEmailInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { generateTokensEdge } from '@/lib/auth-edge'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { verifyEmailSchema, type VerifyEmailInput } from '@/lib/schemas'
 
 async function verifyEmailHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body
@@ -40,7 +40,7 @@ async function verifyEmailHandler(request: NextRequest): Promise<NextResponse> {
   console.log('TODO: Send welcome email to:', user.email)
 
   // Generate tokens
-  const { accessToken, refreshToken } = generateTokens(user)
+  const { accessToken, refreshToken } = await generateTokensEdge(user)
 
   return createResponse({
     user: {

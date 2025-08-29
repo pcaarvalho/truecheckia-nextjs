@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
+import { LogoutButton } from '@/components/dashboard/logout-button';
 import { 
   Shield, 
   LayoutDashboard, 
@@ -40,7 +41,7 @@ export default function DashboardLayout({
             className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100"
           >
             <FileText className="w-5 h-5" />
-            <span>Nova Análise</span>
+            <span>New Analysis</span>
           </Link>
           
           <Link
@@ -48,7 +49,7 @@ export default function DashboardLayout({
             className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100"
           >
             <History className="w-5 h-5" />
-            <span>Histórico</span>
+            <span>History</span>
           </Link>
           
           <Link
@@ -56,7 +57,7 @@ export default function DashboardLayout({
             className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100"
           >
             <User className="w-5 h-5" />
-            <span>Perfil</span>
+            <span>Profile</span>
           </Link>
           
           <Link
@@ -64,7 +65,7 @@ export default function DashboardLayout({
             className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100"
           >
             <Settings className="w-5 h-5" />
-            <span>Configurações</span>
+            <span>Settings</span>
           </Link>
         </nav>
       </aside>
@@ -79,9 +80,7 @@ export default function DashboardLayout({
             </Button>
             
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
-                Sair
-              </Button>
+              <LogoutButton />
             </div>
           </div>
         </header>

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useSubscription } from '@/hooks/use-subscription'
 import { PricingCard } from '@/components/features/pricing/pricing-card'
-import MarketingNav from '@/app/components/navigation/marketing-nav'
+import MarketingNav from '@/components/navigation/marketing-nav'
 
 function PricingContent() {
   const searchParams = useSearchParams()

@@ -20,8 +20,8 @@ export default function CTASection() {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-in-delayed">
           <Button 
-            size="xl" 
-            variant="glass" 
+            size="lg" 
+            variant="outline" 
             asChild
             className="group interactive-scale text-lg shadow-glow-lg"
           >
@@ -31,7 +31,7 @@ export default function CTASection() {
             </Link>
           </Button>
           <Button 
-            size="xl" 
+            size="lg" 
             variant="outline" 
             className="bg-transparent text-white border-white/30 hover:bg-white hover:text-brand-primary-600 interactive-scale" 
             asChild

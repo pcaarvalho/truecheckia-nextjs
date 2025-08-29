@@ -1,21 +1,89 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import { 
   Mail, 
   Phone, 
   MapPin, 
   Clock,
-  MessageSquare,
   Users,
-  Building
+  Building,
+  Loader2
 } from 'lucide-react';
 
 export default function ContactPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    phone: '',
+    message: ''
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (formData.message.length < 10) {
+      toast.error('Message must be at least 10 characters long');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          company: formData.company,
+          phone: formData.phone,
+          message: formData.message
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success('Message sent successfully! We\'ll get back to you within 24 hours.');
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          company: '',
+          phone: '',
+          message: ''
+        });
+      } else {
+        toast.error(data.error || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Something went wrong. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section */}
@@ -23,11 +91,11 @@ export default function ContactPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Entre em
-              <span className="text-blue-600"> Contato</span>
+              Get in
+              <span className="text-blue-600"> Touch</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12">
-              Nossa equipe está pronta para ajudar você a implementar a melhor solução de detecção de IA para sua empresa.
+              Our team is ready to help you implement the best AI detection solution for your company.
             </p>
           </div>
         </div>
@@ -39,50 +107,101 @@ export default function ContactPage() {
             {/* Contact Form */}
             <Card className="shadow-xl">
               <CardHeader>
-                <CardTitle className="text-2xl">Fale com nossa equipe</CardTitle>
+                <CardTitle className="text-2xl">Talk to our team</CardTitle>
                 <CardDescription>
-                  Preencha o formulário abaixo e entraremos em contato em até 24 horas.
+                  Fill out the form below and we&apos;ll get back to you within 24 hours.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Nome</Label>
-                      <Input id="firstName" placeholder="Seu nome" />
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName" 
+                        placeholder="Your first name"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        required
+                        disabled={isSubmitting}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Sobrenome</Label>
-                      <Input id="lastName" placeholder="Seu sobrenome" />
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName" 
+                        placeholder="Your last name"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        required
+                        disabled={isSubmitting}
+                      />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="seu@email.com" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Empresa</Label>
-                    <Input id="company" placeholder="Nome da sua empresa" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone (opcional)</Label>
-                    <Input id="phone" type="tel" placeholder="+55 (11) 99999-9999" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Mensagem</Label>
-                    <Textarea 
-                      id="message" 
-                      placeholder="Conte-nos sobre suas necessidades..."
-                      rows={4}
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="your@email.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
                     />
                   </div>
                   
-                  <Button className="w-full" size="lg">
-                    Enviar Mensagem
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company</Label>
+                    <Input 
+                      id="company" 
+                      placeholder="Your company name"
+                      value={formData.company}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone (optional)</Label>
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      placeholder="+1 (555) 123-4567"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea 
+                      id="message" 
+                      placeholder="Tell us about your needs..."
+                      rows={4}
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Message'
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -93,31 +212,8 @@ export default function ContactPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
-                    <MessageSquare className="w-6 h-6 text-blue-600" />
-                    Vendas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-gray-500" />
-                    <span>sales@truecheckai.com</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-500" />
-                    <span>+55 (11) 3000-0000</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <span>Seg-Sex, 9h às 18h (BRT)</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
                     <Users className="w-6 h-6 text-blue-600" />
-                    Suporte
+                    Support
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -127,10 +223,10 @@ export default function ContactPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                    <span>24/7 para clientes Enterprise</span>
+                    <span>24/7 for Enterprise clients</span>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Para clientes Free e Pro: resposta em até 48h
+                    For Free and Pro clients: response within 48h
                   </p>
                 </CardContent>
               </Card>
@@ -139,16 +235,16 @@ export default function ContactPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
                     <Building className="w-6 h-6 text-blue-600" />
-                    Escritório
+                    Office
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-gray-500 mt-1" />
                     <div>
-                      <p>Av. Paulista, 1000</p>
-                      <p>São Paulo, SP - Brasil</p>
-                      <p>CEP: 01310-100</p>
+                      <p>1000 Paulista Avenue</p>
+                      <p>São Paulo, SP - Brazil</p>
+                      <p>ZIP: 01310-100</p>
                     </div>
                   </div>
                 </CardContent>
@@ -156,16 +252,16 @@ export default function ContactPage() {
 
               {/* Quick Links */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Precisa de ajuda agora?</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Need help now?</h3>
                 <div className="flex flex-col gap-3">
                   <Button variant="outline" asChild>
                     <Link href="/pricing">
-                      Ver Planos e Preços
+                      View Plans and Pricing
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
                     <Link href="/register?plan=PRO">
-                      Começar Teste Gratuito
+                      Start Free Trial
                     </Link>
                   </Button>
                 </div>
@@ -180,49 +276,49 @@ export default function ContactPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Perguntas Frequentes sobre Enterprise
+              Frequently Asked Questions about Enterprise
             </h2>
             <div className="grid md:grid-cols-2 gap-8 mt-12">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-left">Implementação personalizada</CardTitle>
+                  <CardTitle className="text-left">Custom Implementation</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 text-left">
-                    Oferecemos integração completa com seus sistemas existentes, incluindo APIs customizadas e suporte dedicado durante todo o processo.
+                    We offer complete integration with your existing systems, including custom APIs and dedicated support throughout the entire process.
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-left">SLA garantido</CardTitle>
+                  <CardTitle className="text-left">Guaranteed SLA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 text-left">
-                    Garantimos 99.9% de uptime e suporte técnico com resposta em até 4 horas para questões críticas.
+                    We guarantee 99.9% uptime and technical support with response within 4 hours for critical issues.
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-left">Treinamento da equipe</CardTitle>
+                  <CardTitle className="text-left">Team Training</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 text-left">
-                    Incluímos sessões de treinamento para sua equipe e materiais educativos personalizados para sua organização.
+                    We include training sessions for your team and customized educational materials for your organization.
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-left">Relatórios customizados</CardTitle>
+                  <CardTitle className="text-left">Custom Reports</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 text-left">
-                    Criamos dashboards e relatórios específicos para suas necessidades de compliance e análise de dados.
+                    We create specific dashboards and reports for your compliance and data analysis needs.
                   </p>
                 </CardContent>
               </Card>
@@ -232,24 +328,24 @@ export default function ContactPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+      <section className="py-20">
         <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Pronto para começar?
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Ready to get started?
             </h2>
-            <p className="text-xl text-blue-100 mb-8">
-              Nossa equipe está esperando para ajudar você a implementar a melhor solução de detecção de IA.
+            <p className="text-xl text-gray-600 mb-8">
+              Our team is waiting to help you implement the best AI detection solution.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" asChild>
+              <Button size="lg" asChild>
                 <Link href="/register?plan=PRO">
-                  Começar Teste Gratuito
+                  Start Free Trial
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-blue-600" asChild>
+              <Button size="lg" variant="outline" asChild>
                 <Link href="/pricing">
-                  Ver Todos os Planos
+                  View All Plans
                 </Link>
               </Button>
             </div>

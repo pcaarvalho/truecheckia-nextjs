@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/prisma'
-import { hashPassword } from '../../../lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { resetPasswordSchema, type ResetPasswordInput } from '../../../lib/schemas'
+import { prisma } from '@/lib/prisma'
+import { hashPassword } from '@/lib/auth'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/schemas'
 
 async function resetPasswordHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body

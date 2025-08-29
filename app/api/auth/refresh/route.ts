@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyRefreshToken, generateTokens } from '@/lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
-import { refreshTokenSchema, type RefreshTokenInput } from '@/app/lib/schemas'
+import { verifyRefreshTokenEdge, generateTokensEdge } from '@/lib/auth-edge'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { refreshTokenSchema, type RefreshTokenInput } from '@/lib/schemas'
 
 async function refreshHandler(request: NextRequest): Promise<NextResponse> {
   // Validate request body
@@ -14,7 +14,7 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
 
   try {
     // Verify refresh token
-    const payload = verifyRefreshToken(refreshToken)
+    const payload = await verifyRefreshTokenEdge(refreshToken)
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -32,7 +32,7 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
     }
 
     // Generate new tokens
-    const tokens = generateTokens(user)
+    const tokens = await generateTokensEdge(user)
     
     // Create response
     const response = createResponse(tokens)

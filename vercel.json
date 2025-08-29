@@ -1,18 +1,15 @@
 {
   "version": 2,
+  "framework": "nextjs",
   "name": "truecheckia",
-  "alias": [
-    "truecheckia.com",
-    "www.truecheckia.com"
-  ],
   "build": {
     "env": {
       "NODE_OPTIONS": "--max-old-space-size=4096"
     }
   },
   "functions": {
-    "app/**/*.ts": {
-      "runtime": "@vercel/node@18"
+    "app/api/**/*.ts": {
+      "maxDuration": 30
     }
   },
   "crons": [

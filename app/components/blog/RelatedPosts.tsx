@@ -1,4 +1,4 @@
-import { getRelatedPosts } from '@/app/lib/blog/posts'
+import { getRelatedPosts } from '@/lib/blog/posts'
 import { BlogCard } from './BlogCard'
 
 interface RelatedPostsProps {

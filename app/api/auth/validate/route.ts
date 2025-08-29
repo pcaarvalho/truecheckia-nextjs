@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAccessToken } from '../../../../lib/auth'
-import { createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '../../../lib/middleware'
-import { prisma } from '../../../lib/prisma'
+import { verifyAccessToken } from '@/lib/auth'
+import { createResponse, createErrorResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { prisma } from '@/lib/prisma'
 
 async function validateTokenHandler(request: NextRequest): Promise<NextResponse> {
   // Get token from both cookies and authorization header

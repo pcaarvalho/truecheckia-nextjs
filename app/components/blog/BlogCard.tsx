@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { Clock, Calendar, User, ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import type { BlogPostMetadata } from '@/app/lib/blog/posts'
+import type { BlogPostMetadata } from '@/lib/blog/posts'
 
 interface BlogCardProps {
   post: BlogPostMetadata

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 import { ButtonV2 as Button } from '@/components/ui/button-v2';
 import { useAuth } from '@/lib/auth/auth-context';
 import { 

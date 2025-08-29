@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { Switch } from '@/app/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { CheckoutButton } from '@/components/stripe/checkout-button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { 
   Check, 
   X, 
@@ -111,36 +112,36 @@ const plans: Plan[] = [
 
 const faqs = [
   {
-    question: "Como funcionam os créditos?",
-    answer: "Cada análise de texto consome 1 crédito. Os créditos são renovados mensalmente e não se acumulam para o próximo período."
+    question: "How do credits work?",
+    answer: "Each text analysis consumes 1 credit. Credits are renewed monthly and do not roll over to the next period."
   },
   {
-    question: "Posso mudar de plano a qualquer momento?",
-    answer: "Sim! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As mudanças entram em vigor no próximo período de cobrança."
+    question: "Can I change plans at any time?",
+    answer: "Yes! You can upgrade or downgrade your plan at any time. Changes take effect on the next billing period."
   },
   {
-    question: "Existe período de teste gratuito?",
-    answer: "Sim, oferecemos 14 dias de teste gratuito para o plano Pro. Não é necessário cartão de crédito para começar."
+    question: "Is there a free trial period?",
+    answer: "Yes, we offer a 14-day free trial for the Pro plan. No credit card required to get started."
   },
   {
-    question: "Que tipos de conteúdo posso analisar?",
-    answer: "Nossa plataforma analisa textos em português, inglês, espanhol e francês. Suportamos artigos, ensaios, posts de blog, código e muito mais."
+    question: "What types of content can I analyze?",
+    answer: "Our platform analyzes texts in Portuguese, English, Spanish, and French. We support articles, essays, blog posts, code, and much more."
   },
   {
-    question: "Os dados são seguros?",
-    answer: "Sim, todos os dados são criptografados em trânsito e em repouso. Não armazenamos o conteúdo analisado após o processamento."
+    question: "Is my data secure?",
+    answer: "Yes, all data is encrypted in transit and at rest. We do not store analyzed content after processing."
   },
   {
-    question: "Como funciona o suporte?",
-    answer: "Plano Free: suporte por email. Plano Pro: suporte prioritário com resposta em até 24h. Enterprise: suporte dedicado com resposta em até 4h."
+    question: "How does support work?",
+    answer: "Free plan: email support. Pro plan: priority support with response within 24h. Enterprise: dedicated support with response within 4h."
   },
   {
-    question: "Existe API disponível?",
-    answer: "Sim, a API está disponível para planos Pro e Enterprise. Oferecemos documentação completa e SDKs para principais linguagens."
+    question: "Is API access available?",
+    answer: "Yes, API access is available for Pro and Enterprise plans. We provide complete documentation and SDKs for major languages."
   },
   {
-    question: "Posso cancelar a qualquer momento?",
-    answer: "Sim, você pode cancelar sua assinatura a qualquer momento. Não há taxas de cancelamento e você mantém acesso até o fim do período pago."
+    question: "Can I cancel at any time?",
+    answer: "Yes, you can cancel your subscription at any time. There are no cancellation fees and you maintain access until the end of the paid period."
   }
 ];
 
@@ -149,8 +150,8 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const getPrice = (plan: Plan) => {
-    if (plan.monthlyPrice === 0) return "Grátis";
-    if (plan.name === "Enterprise") return "Personalizado";
+    if (plan.monthlyPrice === 0) return "Free";
+    if (plan.name === "Enterprise") return "Custom";
     
     const price = isYearly ? plan.yearlyPrice / 12 : plan.monthlyPrice;
     return `$${price.toFixed(0)}`;
@@ -174,17 +175,17 @@ export default function PricingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Preços que se adaptam ao seu
-              <span className="text-blue-600"> negócio</span>
+              Pricing that adapts to your
+              <span className="text-blue-600"> business</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12">
-              Escolha o plano ideal para suas necessidades. Comece grátis e escale conforme cresce.
+              Choose the perfect plan for your needs. Start free and scale as you grow.
             </p>
 
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-4 mb-12">
               <span className={`text-sm font-medium ${!isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
-                Mensal
+                Monthly
               </span>
               <Switch
                 checked={isYearly}
@@ -192,11 +193,11 @@ export default function PricingPage() {
                 aria-label="Toggle yearly billing"
               />
               <span className={`text-sm font-medium ${isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
-                Anual
+                Yearly
               </span>
               {isYearly && (
                 <Badge variant="secondary" className="ml-2">
-                  Economize 17%
+                  Save 17%
                 </Badge>
               )}
             </div>
@@ -217,7 +218,7 @@ export default function PricingPage() {
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-blue-600 text-white px-4 py-1 flex items-center gap-1">
                       <Star className="w-3 h-3" />
-                      Mais Popular
+                      Most Popular
                     </Badge>
                   </div>
                 )}
@@ -234,7 +235,7 @@ export default function PricingPage() {
                         {getPrice(plan)}
                       </span>
                       {plan.monthlyPrice > 0 && plan.name !== "Enterprise" && (
-                        <span className="text-gray-500">/mês</span>
+                        <span className="text-gray-500">/month</span>
                       )}
                     </div>
                     
@@ -244,7 +245,7 @@ export default function PricingPage() {
                           ${plan.monthlyPrice}/mês
                         </span>
                         <Badge variant="secondary" className="ml-2">
-                          Economize {getSavings(plan)}%
+                          Save {getSavings(plan)}%
                         </Badge>
                       </div>
                     )}
@@ -271,16 +272,14 @@ export default function PricingPage() {
                 </CardContent>
 
                 <CardFooter className="px-6 pb-6">
-                  <Button 
-                    className="w-full" 
+                  <CheckoutButton
+                    plan={plan.slug as 'PRO' | 'ENTERPRISE'}
+                    interval={isYearly ? 'yearly' : 'monthly'}
+                    isAuthenticated={false}
+                    buttonText={plan.buttonText}
                     variant={plan.buttonVariant}
                     size="lg"
-                    asChild
-                  >
-                    <Link href={plan.name === "Enterprise" ? "/contact" : `/register?plan=${plan.slug}`}>
-                      {plan.buttonText}
-                    </Link>
-                  </Button>
+                  />
                 </CardFooter>
               </Card>
             ))}
@@ -293,10 +292,10 @@ export default function PricingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Por que escolher TrueCheck-AI?
+              Why choose TrueCheck-AI?
             </h2>
             <p className="text-xl text-gray-600">
-              Tecnologia de ponta para detectar conteúdo gerado por IA
+              Cutting-edge technology to detect AI-generated content
             </p>
           </div>
 
@@ -305,9 +304,9 @@ export default function PricingPage() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Zap className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Análise Rápida</h3>
+              <h3 className="text-xl font-semibold mb-4">Fast Analysis</h3>
               <p className="text-gray-600">
-                Resultados precisos em segundos com nossa tecnologia avançada de IA.
+                Accurate results in seconds with our advanced AI technology.
               </p>
             </div>
 
@@ -315,9 +314,9 @@ export default function PricingPage() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Shield className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Segurança Total</h3>
+              <h3 className="text-xl font-semibold mb-4">Complete Security</h3>
               <p className="text-gray-600">
-                Seus dados são protegidos com criptografia de nível militar.
+                Your data is protected with military-grade encryption.
               </p>
             </div>
 
@@ -325,9 +324,9 @@ export default function PricingPage() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Globe className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Multi-idioma</h3>
+              <h3 className="text-xl font-semibold mb-4">Multi-language</h3>
               <p className="text-gray-600">
-                Detecta conteúdo IA em português, inglês, espanhol e francês.
+                Detects AI content in Portuguese, English, Spanish, and French.
               </p>
             </div>
 
@@ -335,9 +334,9 @@ export default function PricingPage() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <BarChart3 className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-4">Relatórios Detalhados</h3>
+              <h3 className="text-xl font-semibold mb-4">Detailed Reports</h3>
               <p className="text-gray-600">
-                Insights completos sobre padrões e tendências de conteúdo.
+                Complete insights about content patterns and trends.
               </p>
             </div>
           </div>
@@ -350,10 +349,10 @@ export default function PricingPage() {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Perguntas Frequentes
+                Frequently Asked Questions
               </h2>
               <p className="text-xl text-gray-600">
-                Encontre respostas para as dúvidas mais comuns
+                Find answers to the most common questions
               </p>
             </div>
 
@@ -390,22 +389,26 @@ export default function PricingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Pronto para detectar conteúdo IA com precisão?
+              Ready to detect AI content with precision?
             </h2>
             <p className="text-xl text-blue-100 mb-8">
-              Junte-se a milhares de profissionais que confiam no TrueCheck-AI para validar autenticidade de conteúdo.
+              Join thousands of professionals who trust TrueCheck-AI to validate content authenticity.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="secondary" asChild>
                 <Link href="/register?plan=FREE">
-                  Começar Gratuitamente
+                  Start Free
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-blue-600" asChild>
-                <Link href="/register?plan=PRO">
-                  Testar Pro por 14 dias
-                </Link>
-              </Button>
+              <CheckoutButton
+                plan="PRO"
+                interval={isYearly ? 'yearly' : 'monthly'}
+                isAuthenticated={false}
+                buttonText="Try Pro for 14 days"
+                variant="outline"
+                size="lg"
+                className="bg-transparent text-white border-white hover:bg-white hover:text-blue-600"
+              />
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { withErrorHandler, createResponse, AppError, ERROR_CODES } from '@/app/lib/middleware';
+import { withErrorHandler, createResponse, AppError, ERROR_CODES } from '@/lib/middleware';
 import { sendEmail } from '@/lib/email/resend-client';
 
 const contactSchema = z.object({
@@ -17,14 +17,14 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
     const body = await request.json();
     const data = contactSchema.parse(body);
 
-    // Send email to sales team using Resend
+    // Send email to support team using Resend
     console.log('Contact form submission:', data);
 
-    const salesEmail = 'sales@truecheckia.com';
-    const subject = `${data.plan === 'ENTERPRISE' ? 'Enterprise' : 'Sales'} Inquiry from ${data.name}`;
+    const supportEmail = 'support@truecheckai.com';
+    const subject = `Contact Form: ${data.name} - ${data.company || 'Individual'}`;
     
-    // Create HTML email for sales team
-    const salesEmailHtml = `
+    // Create HTML email for support team
+    const supportEmailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -38,7 +38,7 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
               <p style="color: #666; font-size: 14px; margin: 5px 0 0 0;">New Contact Form Submission</p>
             </div>
             
-            <h2 style="color: #333; font-size: 20px; margin-bottom: 20px;">New ${data.plan === 'ENTERPRISE' ? 'Enterprise' : 'Sales'} Inquiry</h2>
+            <h2 style="color: #333; font-size: 20px; margin-bottom: 20px;">New Contact Form Submission</h2>
             
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-bottom: 20px;">
               <h3 style="color: #334155; font-size: 16px; margin: 0 0 15px 0;">Contact Information:</h3>
@@ -46,7 +46,7 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
               <p style="margin: 8px 0;"><strong>Email:</strong> ${data.email}</p>
               <p style="margin: 8px 0;"><strong>Company:</strong> ${data.company || 'Not provided'}</p>
               <p style="margin: 8px 0;"><strong>Phone:</strong> ${data.phone || 'Not provided'}</p>
-              <p style="margin: 8px 0;"><strong>Plan Interest:</strong> ${data.plan || 'Enterprise'}</p>
+              <p style="margin: 8px 0;"><strong>Plan Interest:</strong> ${data.plan || 'Not specified'}</p>
               <p style="margin: 8px 0;"><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
             </div>
             
@@ -70,10 +70,17 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
       </html>
     `;
     
-    // For now, skip email sending as sendEmail expects ReactElement not HTML string
-    // TODO: Create React email template for contact form submissions
-    console.log('Contact form submission:', { name, email, company, message });
-    console.log('Would send email to:', salesEmail);
+    // Send email to support team
+    const supportEmailResult = await sendEmail({
+      to: supportEmail,
+      subject,
+      template: supportEmailHtml as any,
+      replyTo: data.email
+    });
+    
+    if (!supportEmailResult.success) {
+      console.error('Failed to send email to support:', supportEmailResult.error);
+    }
     
     // Send auto-reply to customer
     const customerEmailHtml = `
@@ -95,14 +102,14 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
             <p style="color: #333; font-size: 16px; margin-bottom: 15px;">Hello ${data.name},</p>
             
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
-              Thank you for your interest in TrueCheckIA's ${data.plan === 'ENTERPRISE' ? 'Enterprise' : ''} solutions. We've received your inquiry and our sales team will review it carefully.
+              Thank you for contacting TrueCheckIA. We've received your message and our support team will review it carefully.
             </p>
             
             <div style="background-color: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: center;">
               <h3 style="color: #0c4a6e; font-size: 18px; margin: 0 0 12px 0;">What happens next?</h3>
-              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ Our sales team will review your requirements</p>
-              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ We'll prepare a customized proposal for your needs</p>
-              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ A sales representative will contact you within 24 hours</p>
+              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ Our support team will review your message</p>
+              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ We'll provide a helpful response to your inquiry</p>
+              <p style="color: #0c4a6e; font-size: 14px; margin: 8px 0;">✅ A team member will contact you within 24 hours</p>
             </div>
             
             <p style="color: #333; font-size: 16px; margin-bottom: 30px;">
@@ -133,15 +140,22 @@ async function handleContactRequest(request: NextRequest): Promise<NextResponse>
       </html>
     `;
     
-    // For now, skip auto-reply as sendEmail expects ReactElement not HTML string
-    // TODO: Create React email template for auto-reply
-    console.log('Would send auto-reply to:', data.email);
+    // Send auto-reply to customer
+    const customerEmailResult = await sendEmail({
+      to: data.email,
+      subject: 'Thank you for contacting TrueCheckIA',
+      template: customerEmailHtml as any
+    });
+    
+    if (!customerEmailResult.success) {
+      console.error('Failed to send auto-reply to customer:', customerEmailResult.error);
+    }
 
     return createResponse({
       success: true,
-      message: 'Thank you for your inquiry. Our sales team will contact you within 24 hours.',
+      message: 'Thank you for your message. Our support team will contact you within 24 hours.',
       data: {
-        emailSent: emailResult.success,
+        emailSent: supportEmailResult.success && customerEmailResult.success,
         submittedAt: new Date().toISOString()
       }
     });

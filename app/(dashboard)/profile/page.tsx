@@ -1,18 +1,37 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Badge } from '@/app/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
+'use client';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, CreditCard } from 'lucide-react';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useState, useEffect } from 'react';
 
 export default function ProfilePage() {
+  const { user } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  
+  useEffect(() => {
+    if (user) {
+      // Split name into first and last
+      const nameParts = user.name?.split(' ') || [];
+      setFirstName(nameParts[0] || '');
+      setLastName(nameParts.slice(1).join(' ') || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Perfil</h1>
-        <p className="text-gray-600">Gerencie suas informações pessoais e configurações</p>
+        <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+        <p className="text-gray-600">Manage your personal information and settings</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -20,76 +39,98 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Informações Pessoais</CardTitle>
+              <CardTitle>Personal Information</CardTitle>
               <CardDescription>
-                Atualize suas informações de perfil
+                Update your profile information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-4">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={(user as any)?.picture || "/placeholder-avatar.jpg"} />
+                  <AvatarFallback>{user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
                   <Button variant="outline" size="sm">
-                    Alterar Foto
+                    Change Photo
                   </Button>
                   <p className="text-sm text-gray-500 mt-1">
-                    JPG, PNG até 2MB
+                    JPG, PNG up to 2MB
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Nome</Label>
-                  <Input id="firstName" defaultValue="João" />
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input 
+                    id="firstName" 
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Sobrenome</Label>
-                  <Input id="lastName" defaultValue="Silva" />
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input 
+                    id="lastName" 
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="joao@example.com" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={user?.googleId ? true : false}
+                />
+                {user?.googleId && (
+                  <p className="text-sm text-gray-500">Email cannot be changed for Google accounts</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">Empresa</Label>
-                <Input id="company" defaultValue="Empresa XYZ" />
+                <Label htmlFor="company">Company</Label>
+                <Input 
+                  id="company" 
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Enter your company name"
+                />
               </div>
 
-              <Button>Salvar Alterações</Button>
+              <Button>Save Changes</Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Segurança</CardTitle>
+              <CardTitle>Security</CardTitle>
               <CardDescription>
-                Gerencie sua senha e configurações de segurança
+                Manage your password and security settings
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Label htmlFor="currentPassword">Current Password</Label>
                 <Input id="currentPassword" type="password" />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Label htmlFor="newPassword">New Password</Label>
                 <Input id="newPassword" type="password" />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input id="confirmPassword" type="password" />
               </div>
 
-              <Button>Alterar Senha</Button>
+              <Button>Change Password</Button>
             </CardContent>
           </Card>
         </div>
@@ -98,28 +139,34 @@ export default function ProfilePage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Plano Atual</CardTitle>
+              <CardTitle>Current Plan</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Enterprise</span>
-                  <Badge>Ativo</Badge>
+                  <span className="font-medium">{user?.plan || 'FREE'}</span>
+                  <Badge variant={user?.plan === 'FREE' ? 'secondary' : 'default'}>
+                    {user?.plan === 'FREE' ? 'Free' : 'Active'}
+                  </Badge>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <CreditCard className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">Ilimitado</span>
+                    <span className="text-sm">
+                      {user?.credits || 0} credits remaining
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">Renovação: 15/02/2024</span>
-                  </div>
+                  {user?.plan !== 'FREE' && (
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">Renewal: Next month</span>
+                    </div>
+                  )}
                 </div>
 
                 <Button variant="outline" className="w-full">
-                  Gerenciar Plano
+                  Manage Plan
                 </Button>
               </div>
             </CardContent>
@@ -127,27 +174,27 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Estatísticas</CardTitle>
+              <CardTitle>Statistics</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Análises este mês</span>
+                    <span className="text-sm text-gray-600">Analyses this month</span>
                     <span className="font-medium">47</span>
                   </div>
                 </div>
                 
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Total de análises</span>
+                    <span className="text-sm text-gray-600">Total analyses</span>
                     <span className="font-medium">1,234</span>
                   </div>
                 </div>
                 
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Membro desde</span>
+                    <span className="text-sm text-gray-600">Member since</span>
                     <span className="font-medium">Jan 2024</span>
                   </div>
                 </div>
@@ -157,18 +204,22 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Conta Conectada</CardTitle>
+              <CardTitle>Connected Account</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 text-sm font-medium">G</span>
+              {user?.googleId ? (
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                    <span className="text-red-600 text-sm font-medium">G</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Google</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">Google</p>
-                  <p className="text-sm text-gray-600">joao@gmail.com</p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-gray-500">No connected accounts</p>
+              )}
             </CardContent>
           </Card>
         </div>

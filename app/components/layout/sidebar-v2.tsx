@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 import { ButtonV2 as Button } from '@/components/ui/button-v2';
 import { useAuth } from '@/lib/auth/auth-context';
 import { 

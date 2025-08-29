@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { FileText, Download, Eye, Trash2, Calendar } from 'lucide-react';
 
 export default function HistoryPage() {
@@ -51,17 +51,17 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Histórico de Análises</h1>
-          <p className="text-gray-600">Veja todas as suas análises anteriores</p>
+          <h1 className="text-3xl font-bold text-gray-900">Analysis History</h1>
+          <p className="text-gray-600">View all your previous analyses</p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
-            Exportar
+            Export
           </Button>
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
-            Filtros
+            Filters
           </Button>
         </div>
       </div>
@@ -71,25 +71,25 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">47</div>
-            <div className="text-sm text-gray-600">Total de Análises</div>
+            <div className="text-sm text-gray-600">Total Analyses</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-red-600">12</div>
-            <div className="text-sm text-gray-600">Alto Risco</div>
+            <div className="text-sm text-gray-600">High Risk</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-yellow-600">18</div>
-            <div className="text-sm text-gray-600">Risco Médio</div>
+            <div className="text-sm text-gray-600">Medium Risk</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">17</div>
-            <div className="text-sm text-gray-600">Baixo Risco</div>
+            <div className="text-sm text-gray-600">Low Risk</div>
           </CardContent>
         </Card>
       </div>
@@ -97,9 +97,9 @@ export default function HistoryPage() {
       {/* History List */}
       <Card>
         <CardHeader>
-          <CardTitle>Análises Recentes</CardTitle>
+          <CardTitle>Recent Analyses</CardTitle>
           <CardDescription>
-            Histórico completo de todas as suas análises
+            Complete history of all your analyses
           </CardDescription>
         </CardHeader>
         <CardContent>

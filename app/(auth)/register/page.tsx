@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -11,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/auth/use-auth'
+import { GoogleSignInButton } from '@/components/auth/google-signin-button'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -49,7 +52,6 @@ function RegisterForm() {
   // Handle plan, checkout success, and message parameters
   useEffect(() => {
     const message = searchParams.get('message')
-    const source = searchParams.get('source')
     const checkout = searchParams.get('checkout')
     const sessionId = searchParams.get('session_id')
     const plan = searchParams.get('plan')
@@ -105,13 +107,13 @@ function RegisterForm() {
         })
         router.push('/login?message=Please check your email to verify your account')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[RegisterPage] Registration error:', error)
       
       let errorMessage = 'Registration failed. Please try again.'
       const title = 'Registration failed'
       
-      if (error.message) {
+      if (error instanceof Error) {
         errorMessage = error.message
       }
       
@@ -295,15 +297,16 @@ function RegisterForm() {
             </div>
           </div>
 
-          {/* Google Sign In - TODO: Implement GoogleSignInButton */}
+          {/* Google Sign In */}
           <div className="mb-8">
-            <Button
+            <GoogleSignInButton
+              text="Sign up with Google"
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
-              disabled={isLoading}
-            >
-              Sign up with Google
-            </Button>
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              size="default"
+              redirectPath={searchParams.get('redirect') || '/dashboard'}
+              plan={searchParams.get('plan') || undefined}
+            />
           </div>
 
           {/* Sign in link */}

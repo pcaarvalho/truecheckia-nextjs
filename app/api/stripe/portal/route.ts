@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createBillingPortalSession } from '@/lib/stripe/client';
-import { withErrorHandler, authenticateRequest, createResponse, createErrorResponse, AppError, ERROR_CODES } from '../../../lib/middleware';
+import { withErrorHandler, authenticateRequest, createResponse, createErrorResponse, AppError, ERROR_CODES } from '@/lib/middleware';
 
 /**
  * Stripe Billing Portal API Endpoint

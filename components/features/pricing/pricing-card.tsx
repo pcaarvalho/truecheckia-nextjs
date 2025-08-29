@@ -9,8 +9,8 @@ import { Check, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/hooks/use-subscription';
 import { usePricing } from '@/hooks/use-pricing';
 import { formatPrice, calculateYearlySavings } from '@/lib/stripe/utils';
-import { useAnalytics } from '@/app/hooks/use-analytics';
-import { usePricingPageView } from '@/app/hooks/use-page-view';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { usePricingPageView } from '@/hooks/use-page-view';
 
 interface PricingData {
   PRO: {

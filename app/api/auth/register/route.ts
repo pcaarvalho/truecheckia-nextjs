@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { generateTokens, hashPassword } from '@/lib/auth'
-import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/app/lib/middleware'
-import { registerSchema, type RegisterInput } from '@/app/lib/schemas'
+import { generateTokensEdge } from '@/lib/auth-edge'
+import { hashPassword } from '@/lib/auth'
+import { validateRequest, createResponse, withErrorHandler, handleOptions, AppError, ERROR_CODES } from '@/lib/middleware'
+import { registerSchema, type RegisterInput } from '@/lib/schemas'
+import { sendWelcomeEmail } from '@/lib/email/resend-client'
 
 // Free credits configuration
 const FREE_CREDITS = 10
@@ -50,12 +52,14 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
     },
   })
 
-  // TODO: Send verification email asynchronously
-  // This would be implemented with a queue system or email service
-  console.log('TODO: Send verification email to:', email, 'with token:', emailVerificationToken)
+  // Send welcome email asynchronously (non-blocking)
+  sendWelcomeEmail(email, name || email.split('@')[0]).catch(error => {
+    console.error('Failed to send welcome email:', error)
+    // Don't fail the registration if email fails
+  })
 
   // Generate tokens for immediate login (soft verification)
-  const { accessToken, refreshToken } = generateTokens(user)
+  const { accessToken, refreshToken } = await generateTokensEdge(user)
 
   // Create response
   const response = createResponse({

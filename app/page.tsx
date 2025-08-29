@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Header from '@/components/layout/header/header'
 import Hero from '@/components/features/marketing/hero'
 import Features from '@/components/features/marketing/features'
+import BlogPreview from '@/components/features/marketing/blog-preview'
 import PricingSection from '@/components/features/marketing/pricing-section'
 import Footer from '@/components/layout/footer/footer'
 
@@ -17,6 +18,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <Features />
+        <BlogPreview />
         <section id="pricing">
           <PricingSection />
         </section>

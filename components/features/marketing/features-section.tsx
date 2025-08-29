@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button';
-import { FeatureCard } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Zap, Users, ArrowRight } from 'lucide-react';
 
 export default function FeaturesSection() {
@@ -19,44 +19,53 @@ export default function FeaturesSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard 
-            icon={<Shield className="w-8 h-8" />}
-            title="Total Security"
-            description="Your data is processed with maximum security and guaranteed privacy. Cutting-edge encryption and GDPR compliance."
-            action={
+          <Card className="animate-slide-in">
+            <CardHeader>
+              <Shield className="w-8 h-8 mb-2 text-primary" />
+              <CardTitle>Total Security</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Your data is processed with maximum security and guaranteed privacy. Cutting-edge encryption and GDPR compliance.
+              </CardDescription>
               <Button variant="ghost" size="sm" className="mt-4">
                 Learn More
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            }
-            className="animate-slide-in"
-          />
+            </CardContent>
+          </Card>
           
-          <FeatureCard 
-            icon={<Zap className="w-8 h-8" />}
-            title="Instant Analysis"
-            description="Precise results in seconds. Real-time analysis with cutting-edge AI for maximum efficiency and productivity."
-            action={
+          <Card className="animate-slide-in-delayed">
+            <CardHeader>
+              <Zap className="w-8 h-8 mb-2 text-primary" />
+              <CardTitle>Instant Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Precise results in seconds. Real-time analysis with cutting-edge AI for maximum efficiency and productivity.
+              </CardDescription>
               <Button variant="ghost" size="sm" className="mt-4">
                 View Demo
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            }
-            className="animate-slide-in-delayed"
-          />
+            </CardContent>
+          </Card>
           
-          <FeatureCard 
-            icon={<Users className="w-8 h-8" />}
-            title="Advanced Collaboration"
-            description="Work as a team with advanced collaboration tools. Share analysis and manage projects in real time."
-            action={
+          <Card className="animate-slide-in">
+            <CardHeader>
+              <Users className="w-8 h-8 mb-2 text-primary" />
+              <CardTitle>Advanced Collaboration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Work as a team with advanced collaboration tools. Share analysis and manage projects in real time.
+              </CardDescription>
               <Button variant="ghost" size="sm" className="mt-4">
                 Explore
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            }
-            className="animate-slide-in"
-          />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

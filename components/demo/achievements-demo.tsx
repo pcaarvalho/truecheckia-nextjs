@@ -101,7 +101,7 @@ export function AchievementsDemo() {
         </motion.div>
 
         <motion.div className="grid md:grid-cols-2 gap-8 mb-8">
-          <Card animated whileHover={{ scale: 1.02, y: -4 }}>
+          <Card>
             <CardHeader>
               <CardTitle>Simulate Achievements</CardTitle>
             </CardHeader>
@@ -140,7 +140,7 @@ export function AchievementsDemo() {
             </CardContent>
           </Card>
 
-          <Card animated whileHover={{ scale: 1.02, y: -4 }}>
+          <Card>
             <CardHeader>
               <CardTitle>Achievement Progress</CardTitle>
             </CardHeader>
@@ -180,17 +180,11 @@ export function AchievementsDemo() {
           {achievements.map((achievement) => (
             <motion.div key={achievement.id} variants={staggerItem}>
               <Card 
-                animated
                 className={`transition-all duration-300 ${
                   achievement.unlocked 
                     ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' 
                     : 'bg-gray-50 border-gray-200'
                 }`}
-                whileHover={achievement.unlocked ? { 
-                  scale: 1.05, 
-                  rotate: [0, -1, 1, 0],
-                  transition: { duration: 0.3 }
-                } : { scale: 1.02 }}
               >
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-3">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { detectAIContent, healthCheck, getCacheStats, getDailyCostStats } from '../../lib/ai-detection'
-import { validateOpenAIConfig } from '../../lib/ai-config'
+import { detectAIContent, healthCheck, getCacheStats, getDailyCostStats } from '@/lib/ai-detection'
+import { validateOpenAIConfig } from '@/lib/ai-config'
 
 /**
  * Test endpoint for AI detection system
