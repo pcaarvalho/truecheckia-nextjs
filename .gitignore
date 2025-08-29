@@ -101,6 +101,8 @@ e2e-*.js
 *.md
 !README.md
 !CLAUDE.md
+!VERCEL_DEPLOYMENT_GUIDE.md
+!VERCEL_ENV_SETUP.md
 *.json
 !package.json
 !package-lock.json
