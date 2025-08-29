@@ -12,7 +12,7 @@
     "analyze": "ANALYZE=true npm run build",
     "preview": "npm run build && npm run start",
     "postinstall": "prisma generate",
-    "vercel-build": "NODE_OPTIONS='--max-old-space-size=8192' prisma generate && NODE_OPTIONS='--max-old-space-size=8192' next build"
+    "vercel-build": "NODE_OPTIONS='--max-old-space-size=8192' prisma generate && prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=8192' next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
