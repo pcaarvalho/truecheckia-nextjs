@@ -179,7 +179,7 @@ async function googleCallbackHandler(request: NextRequest): Promise<NextResponse
           emailVerified: true,
           plan: 'FREE',
           role: 'USER',
-          credits: 3, // Free tier gets 3 credits
+          credits: 10, // Free tier gets 10 credits
         },
         select: {
           id: true,
