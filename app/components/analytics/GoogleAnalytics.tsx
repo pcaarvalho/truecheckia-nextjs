@@ -30,7 +30,7 @@ export function GoogleAnalytics({ consent = false }: GoogleAnalyticsProps) {
   }
 
   // Don't render if no measurement ID is provided
-  if (!GA_MEASUREMENT_ID || GA_MEASUREMENT_ID === 'G-XXXXXXXXXX') {
+  if (!GA_MEASUREMENT_ID) {
     return null
   }
 
