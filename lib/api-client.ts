@@ -49,23 +49,17 @@ class ApiClient {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using refresh token from httpOnly cookie
    */
   private async refreshToken(): Promise<string> {
-    const refreshToken = localStorage.getItem('refreshToken')
-    
-    if (!refreshToken) {
-      throw new Error('No refresh token available')
-    }
-
     try {
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken }),
-        credentials: 'include',
+        body: JSON.stringify({}), // Empty body - refresh token comes from httpOnly cookie
+        credentials: 'include', // Essential for httpOnly cookies
       })
 
       if (!response.ok) {
@@ -80,12 +74,11 @@ class ApiClient {
 
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data
 
-      // Update stored tokens
+      // Store access token in localStorage for API requests
       localStorage.setItem('accessToken', newAccessToken)
-      localStorage.setItem('refreshToken', newRefreshToken)
       
-      // Update cookie for middleware
-      document.cookie = `accessToken=${newAccessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+      // Note: refreshToken is automatically set as httpOnly cookie by the server
+      // We don't need to handle it manually in the client
 
       return newAccessToken
     } catch (error) {
@@ -100,9 +93,18 @@ class ApiClient {
    */
   private clearAuthData() {
     localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
-    document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    // Clear httpOnly cookies by calling logout endpoint
+    if (typeof window !== 'undefined') {
+      fetch('/api/auth/logout', { 
+        method: 'POST', 
+        credentials: 'include' 
+      }).catch(() => {
+        // If logout fails, try manual cookie clearing
+        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      })
+    }
   }
 
   /**

@@ -1,103 +1,163 @@
-# Google OAuth Setup Guide
+# Configuração do Google OAuth Console
 
-This guide will help you configure Google OAuth for TrueCheckIA.
+## ⚠️ AÇÃO NECESSÁRIA IMEDIATA
 
-## 1. Google Cloud Console Setup
+Para que o login com Google funcione em produção, você precisa configurar o Google Console OAuth com as URLs corretas.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google+ API (if not already enabled)
-4. Go to "Credentials" in the left sidebar
-5. Click "Create Credentials" > "OAuth 2.0 Client IDs"
+## 📋 Passos para Configurar
 
-## 2. Configure OAuth Consent Screen
+### 1. Acesse o Google Cloud Console
+- Vá para: https://console.cloud.google.com/
+- Selecione seu projeto (ou crie um novo se necessário)
 
-1. Go to "OAuth consent screen" in the left sidebar
-2. Choose "External" if your app will be used by users outside your organization
-3. Fill out the required information:
-   - App name: `TrueCheckIA`
-   - User support email: Your email
-   - App domain: Your domain (e.g., `https://truecheckia.com`)
-   - Authorized domains: Add your domain
-   - Developer contact information: Your email
+### 2. Navegue para as Credenciais OAuth
+- No menu lateral, vá para **APIs e Serviços** → **Credenciais**
+- Encontre seu **OAuth 2.0 Client ID** (ID do cliente: `144089604432-28hqhc6lbt5r7m1n3ejpregpk48ca72f.apps.googleusercontent.com`)
 
-## 3. Create OAuth 2.0 Client ID
+### 3. Atualize as URLs Autorizadas
 
-1. Go back to "Credentials"
-2. Click "Create Credentials" > "OAuth 2.0 Client IDs"
-3. Choose "Web application"
-4. Add authorized JavaScript origins:
-   - Development: `http://localhost:3000`
-   - Production: `https://yourdomain.com`
-5. Add authorized redirect URIs:
-   - Development: `http://localhost:3000/api/auth/google/callback`
-   - Production: `https://yourdomain.com/api/auth/google/callback`
+#### URIs de Redirecionamento Autorizados (Authorized redirect URIs)
+Adicione TODAS as seguintes URLs:
 
-## 4. Environment Variables
-
-Add the following to your `.env` file:
-
-```bash
-# Google OAuth
-GOOGLE_CLIENT_ID="your_client_id_here.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="your_client_secret_here"
-
-# Make sure these are also set
-FRONTEND_URL="http://localhost:3000"  # or your production URL
-NEXTAUTH_URL="http://localhost:3000"  # or your production URL
+**Produção (OBRIGATÓRIO):**
+```
+https://www.truecheckia.com/api/auth/google/callback
+https://truecheckia.com/api/auth/google/callback
 ```
 
-## 5. OAuth Flow
+**Desenvolvimento (opcional):**
+```
+http://localhost:3000/api/auth/google/callback
+```
 
-The implemented OAuth flow works as follows:
+**URLs do Vercel (opcional, mas recomendado):**
+```
+https://truecheckia.vercel.app/api/auth/google/callback
+https://truecheckia-pedrosnetto.vercel.app/api/auth/google/callback
+```
 
-1. User clicks "Sign in with Google" button
-2. User is redirected to `/api/auth/google` with optional `redirect` and `plan` parameters
-3. Backend redirects user to Google's OAuth consent screen
-4. User grants permissions to the app
-5. Google redirects back to `/api/auth/google/callback` with authorization code
-6. Backend exchanges code for user information
-7. Backend creates/updates user in database
-8. Backend generates JWT tokens and sets secure cookies
-9. User is redirected to `/auth/callback` with tokens in URL
-10. Frontend processes tokens and redirects to appropriate page
+#### Origens JavaScript Autorizadas (Authorized JavaScript origins)
+Adicione TODAS as seguintes URLs:
 
-## 6. Features
+**Produção (OBRIGATÓRIO):**
+```
+https://www.truecheckia.com
+https://truecheckia.com
+```
 
-- ✅ Automatic user creation for new Google accounts
-- ✅ Links existing accounts with Google IDs
-- ✅ Secure JWT token generation
-- ✅ HttpOnly cookies for security
-- ✅ State management for redirect handling
-- ✅ Plan parameter support for pricing redirects
-- ✅ Comprehensive error handling
-- ✅ Email verification bypass for Google accounts
+**Desenvolvimento (opcional):**
+```
+http://localhost:3000
+```
 
-## 7. Testing
+**URLs do Vercel (opcional, mas recomendado):**
+```
+https://truecheckia.vercel.app
+https://truecheckia-pedrosnetto.vercel.app
+```
 
-1. Make sure your environment variables are set
-2. Start the development server: `npm run dev`
-3. Go to `/login` and click the "Sign in with Google" button
-4. Complete the OAuth flow
-5. You should be redirected to the dashboard
+### 4. Salve as Alterações
+- Clique em **Salvar** após adicionar todas as URLs
+- Aguarde alguns minutos para as mudanças propagarem
 
-## 8. Production Considerations
+## 🔍 Verificação
 
-- Update authorized domains in Google Cloud Console
-- Set proper `FRONTEND_URL` and `NEXTAUTH_URL` for production
-- Ensure HTTPS is enabled for production domains
-- Test the complete flow in production environment
-- Monitor OAuth error logs
+### Status Atual das Variáveis de Ambiente (Vercel)
+✅ **Configuradas corretamente:**
+- `FRONTEND_URL`: https://www.truecheckia.com
+- `NEXTAUTH_URL`: https://www.truecheckia.com
+- `NEXT_PUBLIC_APP_URL`: https://www.truecheckia.com
+- `GOOGLE_CLIENT_ID`: (seu client ID)
+- `GOOGLE_CLIENT_SECRET`: (seu client secret)
 
-## 9. Troubleshooting
+### Como Testar
+1. Acesse: https://www.truecheckia.com/login
+2. Clique em "Sign in with Google"
+3. Você deve ser redirecionado para a tela de login do Google
+4. Após autenticar, deve retornar para o dashboard
 
-### Common Issues:
+## ❌ Erro Atual
 
-1. **"redirect_uri_mismatch"**: Check that your redirect URI in Google Console matches exactly
-2. **"unauthorized_client"**: Ensure your client ID is correct and the OAuth consent screen is configured
-3. **"access_denied"**: User cancelled the OAuth flow - this is handled gracefully
-4. **Token errors**: Check that JWT secrets are properly set
+**Mensagem de erro do Google:**
+```
+Error 400: invalid_request
+You can't sign in to this app because it doesn't comply with Google's OAuth 2.0 policy
+```
 
-### Debug Mode:
+**Causa:** O redirect_uri não está registrado no Google Console
 
-Check the browser console and server logs for detailed error information. The OAuth flow includes extensive logging.
+**Redirect URI tentado:** 
+```
+https://truecheckia-pedrosnetto.vercel.app/api/auth/google/callback
+```
+
+## ✅ Solução
+
+Após adicionar as URLs corretas no Google Console, o sistema irá:
+1. Redirecionar para: `https://www.truecheckia.com/api/auth/google/callback`
+2. Processar a autenticação
+3. Criar/atualizar o usuário no banco de dados
+4. Redirecionar para o dashboard
+
+## 📝 Notas Importantes
+
+1. **Domínio Principal:** Sempre use `https://www.truecheckia.com` como domínio principal
+2. **HTTPS Obrigatório:** Google OAuth não aceita HTTP em produção
+3. **Propagação:** Mudanças no Google Console podem levar até 5 minutos para propagar
+4. **Múltiplas URLs:** É seguro e recomendado adicionar múltiplas URLs para diferentes ambientes
+
+## 🔧 Troubleshooting
+
+### Se continuar com erro após configurar:
+1. Verifique se salvou as mudanças no Google Console
+2. Aguarde 5-10 minutos para propagação
+3. Limpe o cache do navegador
+4. Verifique se as variáveis de ambiente estão corretas no Vercel
+5. Faça um redeploy se necessário
+
+### Comandos úteis:
+```bash
+# Verificar variáveis de ambiente no Vercel
+vercel env ls production
+
+# Fazer redeploy
+vercel --prod
+
+# Verificar logs de erro
+vercel logs [URL_DO_DEPLOYMENT]
+```
+
+## 📋 OAuth Flow Implementado
+
+O fluxo OAuth funciona da seguinte forma:
+
+1. Usuário clica em "Sign in with Google"
+2. Redirecionado para `/api/auth/google` com parâmetros opcionais `redirect` e `plan`
+3. Backend redireciona para tela de consentimento do Google
+4. Usuário autoriza as permissões
+5. Google redireciona para `/api/auth/google/callback` com código de autorização
+6. Backend troca código por informações do usuário
+7. Backend cria/atualiza usuário no banco de dados
+8. Backend gera tokens JWT e define cookies seguros
+9. Usuário é redirecionado para `/auth/callback` com tokens na URL
+10. Frontend processa tokens e redireciona para página apropriada
+
+## ✅ Recursos Implementados
+
+- ✅ Criação automática de usuário para novas contas Google
+- ✅ Vinculação de contas existentes com Google IDs
+- ✅ Geração segura de tokens JWT
+- ✅ Cookies HttpOnly para segurança
+- ✅ Gerenciamento de estado para redirecionamentos
+- ✅ Suporte a parâmetro de plano para redirecionamentos de preços
+- ✅ Tratamento abrangente de erros
+- ✅ Bypass de verificação de email para contas Google
+
+## 📅 Última Atualização
+- **Data:** 29/08/2025
+- **Status:** Aguardando configuração no Google Console
+- **Deploy Atual:** https://truecheckia-pa8qy2e65-pedrosnetto.vercel.app
+
+---
+
+**IMPORTANTE:** Após configurar o Google Console, o login com Google funcionará imediatamente sem necessidade de novo deploy.

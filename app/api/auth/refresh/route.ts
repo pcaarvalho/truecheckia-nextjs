@@ -5,12 +5,19 @@ import { validateRequest, createResponse, withErrorHandler, handleOptions, AppEr
 import { refreshTokenSchema, type RefreshTokenInput } from '@/lib/schemas'
 
 async function refreshHandler(request: NextRequest): Promise<NextResponse> {
-  // Validate request body
-  const { refreshToken }: RefreshTokenInput = await validateRequest(request, refreshTokenSchema)
+  // Get refresh token from httpOnly cookie instead of request body
+  const refreshToken = request.cookies.get('refreshToken')?.value
 
   if (!refreshToken) {
     throw new AppError('Refresh token is required', 400, ERROR_CODES.VALIDATION_ERROR)
   }
+  
+  console.log('[Refresh Handler] Attempting token refresh for cookie token:', {
+    hasRefreshToken: !!refreshToken,
+    tokenLength: refreshToken?.length || 0,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    timestamp: new Date().toISOString()
+  })
 
   try {
     // Verify refresh token
@@ -34,6 +41,13 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
     // Generate new tokens
     const tokens = await generateTokensEdge(user)
     
+    console.log('[Refresh Handler] Token refresh successful:', {
+      userId: user.id,
+      email: user.email,
+      newTokenLength: tokens.accessToken.length,
+      timestamp: new Date().toISOString()
+    })
+    
     // Create response
     const response = createResponse(tokens)
     
@@ -42,7 +56,7 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days - match JWT expiration
+      maxAge: 15 * 60, // 15 minutes - match JWT expiration
       path: '/'
     })
 
@@ -50,12 +64,17 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
       path: '/'
     })
 
     return response
   } catch (error) {
+    console.error('[Refresh Handler] Token refresh failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      hasRefreshToken: !!refreshToken,
+      timestamp: new Date().toISOString()
+    })
     throw new AppError('Invalid refresh token', 401, ERROR_CODES.TOKEN_EXPIRED)
   }
 }

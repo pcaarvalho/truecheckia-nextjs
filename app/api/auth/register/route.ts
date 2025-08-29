@@ -80,7 +80,7 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60, // 7 days - match JWT expiration
+    maxAge: 15 * 60, // 15 minutes - match JWT expiration
     path: '/'
   })
 
@@ -88,7 +88,7 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
     path: '/'
   })
 
