@@ -64,21 +64,32 @@ export default function PricingSection() {
               email
             }
 
+        // Get token from localStorage for authenticated requests
+        const token = isAuthenticated ? localStorage.getItem('accessToken') : null
+        
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Include cookies for authentication
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
           body: JSON.stringify(requestBody)
         })
 
-        const data = await response.json()
+        const result = await response.json()
         
         if (!response.ok) {
-          throw new Error(data.message || 'Failed to create checkout session')
+          throw new Error(result.error || result.message || 'Failed to create checkout session')
         }
 
-        if (data.url) {
-          window.location.href = data.url
+        // Handle the API response structure { success: true, data: { url, sessionId } }
+        const checkoutData = result.data || result
+        
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url
         } else {
+          console.error('No checkout URL in response:', result)
           throw new Error('No checkout URL received')
         }
       } catch (error: any) {
