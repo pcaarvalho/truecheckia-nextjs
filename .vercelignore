@@ -1,0 +1,41 @@
+# Development files
+*.log
+*.md
+.git
+.gitignore
+.env.local
+.env.development
+.env.test
+
+# Test files
+__tests__
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+e2e/
+cypress/
+tests/
+
+# Documentation
+docs/
+README.md
+CLAUDE.md
+*.md
+
+# IDE
+.vscode/
+.idea/
+
+# Other
+.DS_Store
+Thumbs.db
+*.swp
+.env.example
+
+# Development database
+prisma/dev.db
+prisma/dev.db-journal
+
+# Scripts that shouldn't be deployed
+scripts/
