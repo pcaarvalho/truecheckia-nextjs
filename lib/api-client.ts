@@ -25,7 +25,12 @@ class ApiClient {
   }> = []
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api'
+    // Use relative URL in production for same-domain API calls
+    this.baseURL = typeof window !== 'undefined' 
+      ? '/api'  // Client-side: use relative URL
+      : process.env.NEXT_PUBLIC_APP_URL 
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api`  // Server-side with app URL
+        : 'http://localhost:3000/api'  // Fallback for local development
   }
 
   /**
