@@ -1,5 +1,34 @@
 import { Resend } from 'resend';
-import { ReactElement } from 'react';
+import type { ReactElement } from 'react';
+
+// Debug helper for logging
+function debugLog(message: string, data?: any) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[EMAIL DEBUG] ${message}`, data || '');
+  }
+}
+
+// Validate Resend configuration
+function validateResendConfig() {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  
+  debugLog('Validating Resend configuration', {
+    hasApiKey: !!apiKey,
+    apiKeyPrefix: apiKey ? apiKey.substring(0, 3) + '***' : 'missing',
+    fromEmail: fromEmail || 'missing'
+  });
+  
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY environment variable is required');
+  }
+  
+  if (!apiKey.startsWith('re_')) {
+    throw new Error('Invalid RESEND_API_KEY format. Must start with "re_"');
+  }
+  
+  return { apiKey, fromEmail };
+}
 
 // Render template to HTML - improved handling
 function renderTemplate(template: ReactElement | string): string {
@@ -14,8 +43,22 @@ function renderTemplate(template: ReactElement | string): string {
   return template.toString();
 }
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client with validation
+let resendInstance: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendInstance) {
+    try {
+      const { apiKey } = validateResendConfig();
+      resendInstance = new Resend(apiKey);
+      debugLog('Resend client initialized successfully');
+    } catch (error) {
+      debugLog('Failed to initialize Resend client', error);
+      throw error;
+    }
+  }
+  return resendInstance;
+}
 
 // Default sender configuration
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'TrueCheckIA <noreply@truecheckia.com>';
@@ -46,6 +89,12 @@ interface SendEmailOptions extends BaseEmail {
 // Email sending function
 export async function sendEmail(options: SendEmailOptions) {
   try {
+    debugLog('Starting email send process', {
+      to: options.to,
+      subject: options.subject,
+      from: options.from || DEFAULT_FROM
+    });
+
     const {
       to,
       subject,
@@ -56,10 +105,19 @@ export async function sendEmail(options: SendEmailOptions) {
       bcc
     } = options;
 
+    // Get Resend client (with validation)
+    const resend = getResendClient();
+
     // Render template to HTML
     const html = renderTemplate(template);
+    
+    debugLog('Template rendered', {
+      htmlLength: html.length,
+      htmlPreview: html.substring(0, 100) + '...'
+    });
 
     // Send email via Resend
+    debugLog('Sending email via Resend API');
     const { data, error } = await resend.emails.send({
       from,
       to,
@@ -71,9 +129,15 @@ export async function sendEmail(options: SendEmailOptions) {
     });
 
     if (error) {
+      debugLog('Resend API error', error);
       console.error('Resend error:', error);
-      throw new Error(`Failed to send email: ${error.message}`);
+      throw new Error(`Failed to send email: ${error.message || JSON.stringify(error)}`);
     }
+
+    debugLog('Email sent successfully', {
+      emailId: data?.id,
+      to: to
+    });
 
     return {
       success: true,
@@ -82,12 +146,17 @@ export async function sendEmail(options: SendEmailOptions) {
     };
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    debugLog('Email sending failed', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     console.error('Email sending error:', error);
     
     // Return structured error response
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: errorMessage,
       message: 'Failed to send email'
     };
   }
@@ -95,6 +164,17 @@ export async function sendEmail(options: SendEmailOptions) {
 
 // Utility function to send welcome email
 export async function sendWelcomeEmail(to: string, userName: string) {
+  debugLog('Sending welcome email', { to, userName });
+  
+  try {
+    // Validate inputs
+    if (!to || !to.includes('@')) {
+      throw new Error('Invalid email address');
+    }
+    
+    if (!userName) {
+      userName = to.split('@')[0]; // Fallback to email prefix
+    }
   const html = `
     <!DOCTYPE html>
     <html>
@@ -157,11 +237,26 @@ export async function sendWelcomeEmail(to: string, userName: string) {
     </html>
   `;
   
-  return sendEmail({
+  const result = await sendEmail({
     to,
     subject: 'Welcome to TrueCheckIA!',
     template: html as any
   });
+  
+  debugLog('Welcome email result', result);
+  return result;
+  
+  } catch (error) {
+    debugLog('Welcome email failed', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to send welcome email:', errorMessage);
+    
+    return {
+      success: false,
+      error: errorMessage,
+      message: 'Failed to send welcome email'
+    };
+  }
 }
 
 // Utility function to send password reset email
@@ -566,5 +661,6 @@ export function getEmailDomain(email: string): string {
   return email.split('@')[1] || '';
 }
 
-// Export the resend client for direct usage if needed
-export { resend };
+// Export functions to get resend client (for direct usage if needed)
+export { getResendClient };
+export const resend = getResendClient();

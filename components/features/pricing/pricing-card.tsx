@@ -115,11 +115,24 @@ export function PricingCard() {
     console.log('PricingCard: Creating checkout session for:', {
       plan: planKey,
       interval: billingCycle,
+      user: {
+        isAuthenticated: !!localStorage.getItem('accessToken'),
+        currentPlan: subscription?.plan,
+      },
+      environment: {
+        isDevelopment: process.env.NODE_ENV === 'development',
+        baseURL: window.location.origin,
+      }
     });
-    createCheckoutSession({
-      plan: planKey,
-      interval: billingCycle,
-    });
+    
+    try {
+      createCheckoutSession({
+        plan: planKey,
+        interval: billingCycle,
+      });
+    } catch (error) {
+      console.error('Failed to initiate checkout:', error);
+    }
   };
 
   return (

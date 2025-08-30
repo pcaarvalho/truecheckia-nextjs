@@ -90,37 +90,59 @@ export async function createCheckoutSession({
   successUrl: string;
   cancelUrl: string;
 }) {
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    mode: 'subscription',
-    customer: customerId,
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-    metadata: {
-      userId,
-      plan,
-    },
-    subscription_data: {
+  console.log('Creating Stripe checkout session with params:', {
+    priceId,
+    customerId,
+    userId,
+    plan,
+    successUrl,
+    cancelUrl,
+  });
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      customer: customerId,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         userId,
         plan,
       },
-    },
-    allow_promotion_codes: true,
-    billing_address_collection: 'required',
-    customer_update: customerId ? {
-      address: 'auto',
-      name: 'auto',
-    } : undefined,
-  });
+      subscription_data: {
+        metadata: {
+          userId,
+          plan,
+        },
+      },
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      customer_update: customerId ? {
+        address: 'auto',
+        name: 'auto',
+      } : undefined,
+    });
 
-  return session;
+    console.log('Stripe checkout session created successfully:', {
+      id: session.id,
+      url: session.url,
+      hasUrl: !!session.url,
+      mode: session.mode,
+      payment_status: session.payment_status,
+    });
+
+    return session;
+  } catch (error) {
+    console.error('Stripe checkout session creation failed:', error);
+    throw error;
+  }
 }
 
 /**

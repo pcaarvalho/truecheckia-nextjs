@@ -23,6 +23,10 @@ interface SubscriptionData {
 interface CheckoutSessionResponse {
   sessionId: string;
   url: string;
+  data?: {
+    url: string;
+    sessionId: string;
+  };
 }
 
 export function useSubscription() {
@@ -72,22 +76,39 @@ export function useSubscription() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create checkout session');
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Checkout session creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error,
+        });
+        throw new Error(error.error || error.message || `HTTP ${response.status}: Failed to create checkout session`);
       }
 
       const jsonResponse = await response.json();
+      console.log('Checkout API response:', jsonResponse);
+      
+      // Handle different response formats
+      if (jsonResponse.success === false) {
+        throw new Error(jsonResponse.error || 'Failed to create checkout session');
+      }
+      
       // The API returns { success: true, data: { url, sessionId } }
       return jsonResponse.data || jsonResponse;
     },
     onSuccess: (data) => {
       // Redirect to Stripe Checkout
       console.log('Checkout session created:', data);
-      if (data.url) {
-        window.location.href = data.url;
+      
+      // Handle both direct data and wrapped response formats
+      const url = data.url || data.data?.url;
+      
+      if (url) {
+        console.log('Redirecting to Stripe checkout:', url);
+        window.location.href = url;
       } else {
         console.error('No URL returned from checkout session', data);
-        toast.error('Failed to redirect to checkout. Please try again.');
+        toast.error('Failed to redirect to checkout. The session was created but no payment URL was provided.');
       }
     },
     onError: (error: Error) => {

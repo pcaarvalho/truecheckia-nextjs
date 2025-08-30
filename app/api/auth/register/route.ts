@@ -53,10 +53,18 @@ async function registerHandler(request: NextRequest): Promise<NextResponse> {
   })
 
   // Send welcome email asynchronously (non-blocking)
-  sendWelcomeEmail(email, name || email.split('@')[0]).catch(error => {
-    console.error('Failed to send welcome email:', error)
-    // Don't fail the registration if email fails
-  })
+  sendWelcomeEmail(email, name || email.split('@')[0])
+    .then(result => {
+      if (result.success) {
+        console.log('Welcome email sent successfully:', result.id);
+      } else {
+        console.error('Welcome email failed:', result.error);
+      }
+    })
+    .catch(error => {
+      console.error('Welcome email error (caught):', error);
+      // Don't fail the registration if email fails
+    });
 
   // Generate tokens for immediate login (soft verification)
   const { accessToken, refreshToken } = await generateTokensEdge(user)

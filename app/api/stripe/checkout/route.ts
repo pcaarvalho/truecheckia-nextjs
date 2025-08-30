@@ -59,8 +59,8 @@ async function createCheckoutSessionHandler(request: NextRequest): Promise<NextR
     });
   }
 
-  // Create checkout session
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  // Create checkout session - Use correct environment variables for production
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
   console.log('Creating checkout session with:', {
     priceId,
     customerId: customer.id,
@@ -77,6 +77,11 @@ async function createCheckoutSessionHandler(request: NextRequest): Promise<NextR
     successUrl: `${baseUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${baseUrl}/dashboard?checkout=cancelled`,
   });
+
+  if (!checkoutSession.url) {
+    console.error('Stripe checkout session created but no URL returned:', checkoutSession);
+    throw new AppError('Failed to create Stripe checkout URL', 500, ERROR_CODES.INTERNAL_ERROR);
+  }
 
   console.log('Checkout session created:', {
     id: checkoutSession.id,
