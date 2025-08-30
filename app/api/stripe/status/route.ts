@@ -59,7 +59,7 @@ export async function GET() {
   };
 
   const configuration = {
-    stripe_api_version: '2025-07-30.basil',
+    stripe_api_version: '2025-08-27.basil',
     price_ids: {
       pro_monthly: 'price_1RyeYEPfgG67ZB4m6XR7GC81',
       pro_yearly: 'price_1RyeYFPfgG67ZB4miaVlYOGJ',
