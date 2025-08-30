@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { apiClient, AnalysisRequest, AnalysisResult, ApiError } from '@/lib/api/client'
+import { AnalysisRequest, AnalysisResult, ApiError } from '@/lib/api/client'
+import apiClient from '@/lib/api-client'
 import { useAuth } from '@/hooks/auth/use-auth'
 import { toast } from 'sonner'
 
@@ -90,7 +91,8 @@ export function useAnalysis(): UseAnalysisReturn {
       })
 
       // Call API
-      const analysisResult = await apiClient.analyzeText(requestData)
+      const response = await apiClient.post('/analysis', requestData)
+      const analysisResult = response.data
       
       console.log('[useAnalysis] Analysis completed:', {
         id: analysisResult.id,

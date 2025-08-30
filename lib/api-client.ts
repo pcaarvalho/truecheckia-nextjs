@@ -155,11 +155,12 @@ class ApiClient {
       ...options.headers,
     }
 
+    const authHeader = (headers as any)['Authorization'] as string | undefined;
     console.log('[ApiClient] Making request:', {
       url: fullUrl,
       method: options.method || 'GET',
-      hasAuthHeader: !!headers['Authorization'],
-      tokenLength: headers['Authorization'] ? headers['Authorization'].split(' ')[1]?.length : 0,
+      hasAuthHeader: !!authHeader,
+      tokenLength: authHeader ? authHeader.split(' ')[1]?.length : 0,
       timestamp: new Date().toISOString()
     })
 

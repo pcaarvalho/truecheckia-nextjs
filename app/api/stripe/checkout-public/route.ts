@@ -11,6 +11,10 @@ const publicCheckoutSchema = z.object({
 });
 
 async function createPublicCheckoutSessionHandler(request: NextRequest): Promise<NextResponse> {
+  let plan: 'PRO' | 'ENTERPRISE' | undefined;
+  let interval: 'monthly' | 'yearly' | undefined;
+  let email: string | undefined;
+  
   try {
     // Validate environment variables first
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -22,7 +26,10 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
     }
 
     const body = await request.json();
-    const { plan, interval, email } = publicCheckoutSchema.parse(body);
+    const parsed = publicCheckoutSchema.parse(body);
+    plan = parsed.plan;
+    interval = parsed.interval;
+    email = parsed.email;
 
     console.log('Public checkout request:', { plan, interval, email });
     console.log('Stripe configuration check:', {

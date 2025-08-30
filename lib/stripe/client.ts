@@ -9,10 +9,10 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   typescript: true,
 });
 
-// Product IDs from Stripe Dashboard
+// Product IDs from Stripe Dashboard - Use environment variables
 export const STRIPE_PRODUCTS = {
-  PRO: 'prod_StALX0bj5Ayx94',
-  ENTERPRISE: 'prod_StAL9bj35CWblw',
+  PRO: process.env.STRIPE_PRO_PRODUCT_ID || 'prod_SuTVlfo5oeBmU3',
+  ENTERPRISE: process.env.STRIPE_ENTERPRISE_PRODUCT_ID || 'prod_SuTVeLEpTGcrBx',
 } as const;
 
 // Price IDs from Stripe Dashboard - Updated 2025-08-21

@@ -158,3 +158,11 @@ This project was migrated from Vite to Next.js 15:
 1. **ESLint temporarily disabled** in `next.config.js` - re-enable after fixing violations
 2. **Theme persistence** - Default theme may not apply correctly on first load
 3. **Memory usage** - Large builds require increased Node memory limit
+
+## Permissions
+
+Claude has authorization for the following operations without confirmation:
+- **Execute any command** - All bash commands can be run without asking for permission
+- **Vercel deployments** - Automatic deployments to Vercel are authorized
+- **Direct code changes** - Modifications to code including production environments are permitted
+- **Test package installation** - Installation and execution of test packages (e.g., MCP Playwright) are authorized

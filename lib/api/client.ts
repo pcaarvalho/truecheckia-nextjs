@@ -90,22 +90,44 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'include', // Always include cookies for httpOnly tokens
     }
 
     // Add auth token if available
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken')
+      console.log('[ApiClient] Token check:', {
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        endpoint,
+        tokenPrefix: token ? token.substring(0, 20) + '...' : null
+      })
+      
       if (token) {
         defaultOptions.headers = {
           ...defaultOptions.headers,
           Authorization: `Bearer ${token}`,
         }
+        console.log('[ApiClient] Authorization header added for:', endpoint)
+      } else {
+        console.warn('[ApiClient] No access token found in localStorage for:', endpoint)
       }
     }
+
+    console.log('[ApiClient] Making request:', {
+      url,
+      method: options.method || 'GET',
+      hasAuthHeader: !!defaultOptions.headers?.['Authorization' as keyof typeof defaultOptions.headers],
+      credentials: defaultOptions.credentials
+    })
 
     const response = await fetch(url, {
       ...defaultOptions,
       ...options,
+      headers: {
+        ...defaultOptions.headers,
+        ...options.headers,
+      },
     })
 
     const responseData: ApiResponse<T> = await response.json().catch(() => ({

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { apiClient, AnalysisResult, ApiError } from '@/lib/api/client'
+import { AnalysisResult, ApiError } from '@/lib/api/client'
+import apiClient from '@/lib/api-client'
 import { toast } from 'sonner'
 
 interface AnalysisHistoryState {
@@ -54,7 +55,8 @@ export function useAnalysisHistory(initialPage: number = 1, initialLimit: number
     try {
       console.log('[useAnalysisHistory] Loading history:', { page, limit })
 
-      const result = await apiClient.getAnalysisHistory(page, limit)
+      const response = await apiClient.get(`/analysis/history?page=${page}&limit=${limit}`)
+      const result = response.data
 
       console.log('[useAnalysisHistory] History loaded:', {
         analysesCount: result.analyses.length,
