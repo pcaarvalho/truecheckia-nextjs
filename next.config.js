@@ -10,8 +10,8 @@ const withMDX = require('@next/mdx')({
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   
-  // Optimize for production
-  output: 'standalone',
+  // Optimize for production (Vercel handles this automatically)
+  poweredByHeader: false,
   
   // Image optimization
   images: {
@@ -96,9 +96,15 @@ const nextConfig = {
   compress: true,
   reactStrictMode: true,
   
-  // Disable ESLint during builds
+  // Disable ESLint during builds (temporary)
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  
+  // Enable production optimizations (swcMinify is deprecated in Next.js 15)
+  compiler: {
+    // Keep console.error for debugging critical issues
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false
   },
   
   // TypeScript configuration
@@ -106,7 +112,28 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   
-  // Headers for CORS and security
+  // Production redirects
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/signin',
+        destination: '/login',
+        permanent: true,
+      },
+      {
+        source: '/signup',
+        destination: '/register',
+        permanent: true,
+      },
+    ];
+  },
+
+  // Headers for security and performance
   async headers() {
     return [
       {
@@ -119,7 +146,7 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Origin',
             value: process.env.NODE_ENV === 'production' 
-              ? (process.env.NEXT_PUBLIC_APP_URL || 'https://truecheckia.vercel.app') 
+              ? (process.env.NEXT_PUBLIC_APP_URL || 'https://truecheckia.com')
               : '*',
           },
           {
@@ -129,6 +156,31 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Headers',
             value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
           },
         ],
       },

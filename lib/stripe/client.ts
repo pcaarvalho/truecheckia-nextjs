@@ -5,7 +5,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
+  apiVersion: '2024-11-20.acacia',
   typescript: true,
 });
 
@@ -99,8 +99,26 @@ export async function createCheckoutSession({
     cancelUrl,
   });
 
+  // Validate required parameters
+  if (!priceId || priceId === 'custom') {
+    throw new Error(`Invalid price ID: ${priceId}`);
+  }
+  
+  if (!successUrl || !cancelUrl) {
+    throw new Error('Success URL and Cancel URL are required');
+  }
+
   try {
-    const session = await stripe.checkout.sessions.create({
+    // Validate the price exists in Stripe first
+    console.log('Validating price ID with Stripe:', priceId);
+    const price = await stripe.prices.retrieve(priceId);
+    console.log('Price validated:', { id: price.id, active: price.active, type: price.type });
+    
+    if (!price.active) {
+      throw new Error(`Price ${priceId} is not active in Stripe`);
+    }
+
+    const sessionParams = {
       payment_method_types: ['card'],
       line_items: [
         {
@@ -109,7 +127,7 @@ export async function createCheckoutSession({
         },
       ],
       mode: 'subscription',
-      customer: customerId,
+      customer: customerId || undefined,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
@@ -128,7 +146,11 @@ export async function createCheckoutSession({
         address: 'auto',
         name: 'auto',
       } : undefined,
-    });
+    } as any;
+
+    console.log('Creating session with params:', JSON.stringify(sessionParams, null, 2));
+    
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log('Stripe checkout session created successfully:', {
       id: session.id,
@@ -136,11 +158,28 @@ export async function createCheckoutSession({
       hasUrl: !!session.url,
       mode: session.mode,
       payment_status: session.payment_status,
+      customer: session.customer,
     });
+
+    if (!session.url) {
+      throw new Error('Checkout session created but URL is missing');
+    }
 
     return session;
   } catch (error) {
-    console.error('Stripe checkout session creation failed:', error);
+    console.error('Stripe checkout session creation failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      priceId,
+      customerId,
+      userId,
+      plan,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    if (error instanceof Error && error.message.includes('No such price')) {
+      throw new Error(`Invalid Stripe price ID: ${priceId}. Please check your Stripe dashboard.`);
+    }
+    
     throw error;
   }
 }

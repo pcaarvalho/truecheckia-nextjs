@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { stripe, createCheckoutSession, createOrRetrieveCustomer, STRIPE_PRICES } from '@/lib/stripe/client';
-import { withErrorHandler, createResponse, createErrorResponse, AppError, ERROR_CODES } from '@/lib/middleware';
+import { withErrorHandler, createResponse, createErrorResponse, AppError, ERROR_CODES, handleOptions } from '@/lib/middleware';
 import { z } from 'zod';
 
 const publicCheckoutSchema = z.object({
@@ -12,10 +12,25 @@ const publicCheckoutSchema = z.object({
 
 async function createPublicCheckoutSessionHandler(request: NextRequest): Promise<NextResponse> {
   try {
+    // Validate environment variables first
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new AppError('Stripe configuration missing: STRIPE_SECRET_KEY', 500, ERROR_CODES.INTERNAL_ERROR);
+    }
+    
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      throw new AppError('Stripe configuration missing: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 500, ERROR_CODES.INTERNAL_ERROR);
+    }
+
     const body = await request.json();
     const { plan, interval, email } = publicCheckoutSchema.parse(body);
 
     console.log('Public checkout request:', { plan, interval, email });
+    console.log('Stripe configuration check:', {
+      hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
+      keyType: process.env.STRIPE_SECRET_KEY?.substring(0, 8) + '...',
+      hasPublishableKey: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      publishableKeyType: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 8) + '...'
+    });
 
     // Check if Enterprise plan - redirect to contact sales
     if (plan === 'ENTERPRISE') {
@@ -60,7 +75,9 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
     }
 
     // Create checkout session
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://www.truecheckia.com';
+    
+    console.log('Using base URL:', baseUrl);
     
     // For public checkout, we need special success/cancel URLs
     const successUrl = user 
@@ -101,7 +118,13 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
     });
 
   } catch (error) {
-    console.error('Public checkout error:', error);
+    console.error('Public checkout error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      requestData: { plan: plan || 'unknown', interval: interval || 'unknown', email: email || 'unknown' },
+      priceId: (plan === 'PRO' && interval) ? (interval === 'monthly' ? STRIPE_PRICES.PRO_MONTHLY : STRIPE_PRICES.PRO_YEARLY) : 'N/A'
+    });
     
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
@@ -111,8 +134,21 @@ async function createPublicCheckoutSessionHandler(request: NextRequest): Promise
     if (error instanceof AppError) {
       throw error;
     }
+
+    // Handle specific Stripe errors
+    if (error instanceof Error) {
+      if (error.message.includes('No such price')) {
+        throw new AppError(`Invalid price configuration. Please contact support.`, 500, ERROR_CODES.INTERNAL_ERROR);
+      }
+      if (error.message.includes('Invalid price ID')) {
+        throw new AppError(`Price configuration error. Please contact support.`, 500, ERROR_CODES.INTERNAL_ERROR);
+      }
+      if (error.message.includes('API key')) {
+        throw new AppError(`Payment system configuration error. Please contact support.`, 500, ERROR_CODES.INTERNAL_ERROR);
+      }
+    }
     
-    throw new AppError('Failed to create checkout session', 500, ERROR_CODES.INTERNAL_ERROR);
+    throw new AppError('Failed to create checkout session. Please try again or contact support.', 500, ERROR_CODES.INTERNAL_ERROR);
   }
 }
 
@@ -146,3 +182,8 @@ async function getPublicCheckoutSessionHandler(request: NextRequest): Promise<Ne
 }
 
 export const GET = withErrorHandler(getPublicCheckoutSessionHandler);
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+  return handleOptions(request);
+}
