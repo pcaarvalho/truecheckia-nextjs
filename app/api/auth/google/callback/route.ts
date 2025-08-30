@@ -225,21 +225,23 @@ async function googleCallbackHandler(request: NextRequest): Promise<NextResponse
     // Create response and set cookies
     const response = NextResponse.redirect(redirectUrl)
     
-    // Set secure cookies
-    response.cookies.set('accessToken', accessToken, {
+    // Set secure cookies with production-optimized settings
+    const isProduction = process.env.NODE_ENV === 'production'
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      secure: isProduction,
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
       path: '/'
+    }
+    
+    response.cookies.set('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60, // 15 minutes - match JWT expiration
     })
 
     response.cookies.set('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/'
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
     })
     
     return response
@@ -268,4 +270,4 @@ async function googleCallbackHandler(request: NextRequest): Promise<NextResponse
 
 // Export handlers for different HTTP methods
 export const GET = withErrorHandler(googleCallbackHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

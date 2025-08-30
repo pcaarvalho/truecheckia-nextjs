@@ -53,6 +53,12 @@ class ApiClient {
    */
   private async refreshToken(): Promise<string> {
     try {
+      console.log('[ApiClient] Attempting token refresh:', {
+        baseURL: this.baseURL,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof window !== 'undefined' ? navigator.userAgent.substring(0, 50) : 'server'
+      })
+      
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -61,9 +67,22 @@ class ApiClient {
         body: JSON.stringify({}), // Empty body - refresh token comes from httpOnly cookie
         credentials: 'include', // Essential for httpOnly cookies
       })
+      
+      console.log('[ApiClient] Refresh response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        ok: response.ok
+      })
 
       if (!response.ok) {
-        throw new Error('Token refresh failed')
+        const errorText = await response.text()
+        console.error('[ApiClient] Token refresh failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        throw new Error(`Token refresh failed: ${response.status} ${response.statusText}`)
       }
 
       const data: ApiResponse<RefreshResponse> = await response.json()
@@ -80,8 +99,13 @@ class ApiClient {
       // Note: refreshToken is automatically set as httpOnly cookie by the server
       // We don't need to handle it manually in the client
 
+      console.log('[ApiClient] Token refresh successful:', {
+        newTokenLength: newAccessToken.length
+      })
+      
       return newAccessToken
     } catch (error) {
+      console.error('[ApiClient] Token refresh error:', error)
       // Clear auth data on refresh failure
       this.clearAuthData()
       throw error

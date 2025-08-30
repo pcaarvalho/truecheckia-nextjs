@@ -16,6 +16,7 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
     hasRefreshToken: !!refreshToken,
     tokenLength: refreshToken?.length || 0,
     userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    origin: request.headers.get('origin'),
     timestamp: new Date().toISOString()
   })
 
@@ -48,24 +49,40 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
       timestamp: new Date().toISOString()
     })
     
-    // Create response
+    // Create response with proper CORS headers
     const response = createResponse(tokens)
+    
+    // Set CORS headers for production
+    const origin = request.headers.get('origin')
+    const isProduction = process.env.NODE_ENV === 'production'
+    
+    if (isProduction && origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin)
+    } else if (!isProduction) {
+      response.headers.set('Access-Control-Allow-Origin', '*')
+    }
+    
+    response.headers.set('Access-Control-Allow-Credentials', 'true')
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    // Cookie settings optimized for production
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
+      path: '/'
+    }
     
     // Set secure httpOnly cookies
     response.cookies.set('accessToken', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 15 * 60, // 15 minutes - match JWT expiration
-      path: '/'
     })
 
     response.cookies.set('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
-      path: '/'
     })
 
     return response
@@ -81,4 +98,4 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
 
 // Export handlers for different HTTP methods
 export const POST = withErrorHandler(refreshHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

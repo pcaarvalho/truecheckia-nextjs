@@ -156,25 +156,62 @@ export function withErrorHandler(
 }
 
 /**
- * CORS headers for API responses
+ * CORS headers for API responses - production-safe
  */
-export function addCorsHeaders(response: NextResponse): NextResponse {
-  response.headers.set('Access-Control-Allow-Origin', '*')
+export function addCorsHeaders(response: NextResponse, origin?: string | null): NextResponse {
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  if (isProduction && origin) {
+    // In production, only allow specific origins
+    const allowedOrigins = [
+      process.env.NEXT_PUBLIC_APP_URL,
+      'https://truecheckia.vercel.app',
+      'https://truecheckia-nextjs.vercel.app'
+    ].filter(Boolean)
+    
+    if (allowedOrigins.includes(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin)
+    }
+  } else {
+    // In development, allow all origins
+    response.headers.set('Access-Control-Allow-Origin', '*')
+  }
+  
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
   return response
 }
 
 /**
- * Handle OPTIONS requests for CORS preflight
+ * Handle OPTIONS requests for CORS preflight - production-safe
  */
-export function handleOptions(): NextResponse {
+export function handleOptions(request?: NextRequest): NextResponse {
+  const origin = request?.headers.get('origin')
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+  }
+  
+  if (isProduction && origin) {
+    const allowedOrigins = [
+      process.env.NEXT_PUBLIC_APP_URL,
+      'https://truecheckia.vercel.app',
+      'https://truecheckia-nextjs.vercel.app'
+    ].filter(Boolean)
+    
+    if (allowedOrigins.includes(origin)) {
+      headers['Access-Control-Allow-Origin'] = origin
+    }
+  } else {
+    headers['Access-Control-Allow-Origin'] = '*'
+  }
+  
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers,
   })
 }

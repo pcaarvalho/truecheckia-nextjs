@@ -57,21 +57,23 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
     refreshToken,
   })
 
-  // Set secure cookies
-  response.cookies.set('accessToken', accessToken, {
+  // Set secure cookies with production-optimized settings
+  const isProduction = process.env.NODE_ENV === 'production'
+  const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 15 * 60, // 15 minutes - match JWT expiration
+    secure: isProduction,
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
     path: '/'
+  }
+  
+  response.cookies.set('accessToken', accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60, // 15 minutes - match JWT expiration
   })
 
   response.cookies.set('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...cookieOptions,
     maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
-    path: '/'
   })
 
   return response
@@ -79,4 +81,4 @@ async function loginHandler(request: NextRequest): Promise<NextResponse> {
 
 // Export handlers for different HTTP methods
 export const POST = withErrorHandler(loginHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)
