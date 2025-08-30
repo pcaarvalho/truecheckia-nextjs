@@ -65,4 +65,4 @@ async function getAnalysisHistoryHandler(request: NextRequest): Promise<NextResp
 
 // Export handlers for different HTTP methods
 export const GET = withErrorHandler(getAnalysisHistoryHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

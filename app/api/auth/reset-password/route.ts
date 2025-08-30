@@ -48,4 +48,4 @@ async function resetPasswordHandler(request: NextRequest): Promise<NextResponse>
 
 // Export handlers for different HTTP methods
 export const POST = withErrorHandler(resetPasswordHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

@@ -239,4 +239,4 @@ async function getDashboardStatsHandler(request: NextRequest): Promise<NextRespo
 
 // Export handlers
 export const GET = withErrorHandler(getDashboardStatsHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

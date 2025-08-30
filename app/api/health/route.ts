@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withErrorHandler, handleOptions } from '@/lib/middleware'
@@ -33,4 +34,4 @@ async function healthCheckHandler(): Promise<NextResponse> {
 
 // Export handlers for different HTTP methods
 export const GET = withErrorHandler(healthCheckHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

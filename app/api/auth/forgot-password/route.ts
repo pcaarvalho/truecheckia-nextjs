@@ -59,4 +59,4 @@ async function forgotPasswordHandler(request: NextRequest): Promise<NextResponse
 
 // Export handlers for different HTTP methods
 export const POST = withErrorHandler(forgotPasswordHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

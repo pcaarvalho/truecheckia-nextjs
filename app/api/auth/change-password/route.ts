@@ -56,4 +56,4 @@ async function changePasswordHandler(request: NextRequest): Promise<NextResponse
 
 // Export handlers for different HTTP methods
 export const POST = withErrorHandler(changePasswordHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)

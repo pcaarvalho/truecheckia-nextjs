@@ -71,4 +71,4 @@ async function validateTokenHandler(request: NextRequest): Promise<NextResponse>
 
 // Export handlers for different HTTP methods
 export const GET = withErrorHandler(validateTokenHandler)
-export const OPTIONS = handleOptions
+export const OPTIONS = (request: NextRequest) => handleOptions(request)
