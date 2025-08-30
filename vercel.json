@@ -5,8 +5,7 @@
   "build": {
     "env": {
       "NODE_OPTIONS": "--max-old-space-size=16384"
-    },
-    "timeout": 900
+    }
   },
   "functions": {
     "app/api/**/*.ts": {
