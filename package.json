@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit",
     "analyze": "ANALYZE=true npm run build",
     "preview": "npm run build && npm run start",
-    "postinstall": "prisma generate --no-engine",
+    "postinstall": "prisma generate",
     "vercel-build": "NODE_OPTIONS='--max-old-space-size=16384' npx prisma generate && NODE_OPTIONS='--max-old-space-size=16384' next build"
   },
   "dependencies": {
@@ -56,7 +56,7 @@
     "openai": "^5.16.0",
     "playwright": "^1.55.0",
     "postcss": "^8.4.0",
-    "prisma": "^6.14.0",
+    "prisma": "^6.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
