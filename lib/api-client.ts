@@ -155,11 +155,27 @@ class ApiClient {
       ...options.headers,
     }
 
+    console.log('[ApiClient] Making request:', {
+      url: fullUrl,
+      method: options.method || 'GET',
+      hasAuthHeader: !!headers['Authorization'],
+      tokenLength: headers['Authorization'] ? headers['Authorization'].split(' ')[1]?.length : 0,
+      timestamp: new Date().toISOString()
+    })
+
     try {
       const response = await fetch(fullUrl, {
         ...options,
         headers,
         credentials: 'include',
+      })
+
+      console.log('[ApiClient] Response received:', {
+        url: fullUrl,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        timestamp: new Date().toISOString()
       })
 
       // Handle 401 Unauthorized - token might be expired

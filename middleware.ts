@@ -9,26 +9,42 @@ const protectedRoutes = ['/dashboard', '/analysis', '/history', '/profile', '/se
 const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/auth-test'];
 
 // Routes that should never redirect (to prevent loops)
-const noRedirectRoutes = ['/api', '/_next', '/favicon.ico', '/manifest.json'];
+const noRedirectRoutes = ['/_next', '/favicon.ico', '/manifest.json'];
+
+// API routes that don't need authentication
+const publicApiRoutes = ['/api/auth', '/api/contact', '/api/stripe/webhook'];
+
+// API routes that need authentication
+const protectedApiRoutes = ['/api/analysis', '/api/dashboard'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only log in development or if debug mode is enabled
-  const shouldLog = process.env.NODE_ENV === 'development' || process.env.DEBUG_AUTH === 'true'
+  // Only log in development
+  const shouldLog = process.env.NODE_ENV === 'development'
   if (shouldLog) {
     console.log('[Middleware] Processing request for:', pathname)
   }
 
-  // Skip middleware for API routes and static files
+  // Skip middleware for static files
   if (noRedirectRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next();
   }
-
-  // Check if it's a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
+  
+  // Skip middleware for public API routes
+  if (publicApiRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+  
+  // Check if it's a protected API route
+  const isProtectedApiRoute = protectedApiRoutes.some(route => 
     pathname.startsWith(route)
   );
+
+  // Check if it's a protected route (page or API)
+  const isProtectedRoute = protectedRoutes.some(route => 
+    pathname.startsWith(route)
+  ) || isProtectedApiRoute;
 
   // Check if it's a public route
   const isPublicRoute = publicRoutes.some(route => 
@@ -46,6 +62,7 @@ export async function middleware(request: NextRequest) {
     console.log('[Middleware] Initial auth check:', {
       pathname,
       isProtectedRoute,
+      isProtectedApiRoute,
       isPublicRoute,
       hasTokenFromCookie: !!tokenFromCookie,
       hasTokenFromHeader: !!tokenFromHeader,
@@ -70,20 +87,26 @@ export async function middleware(request: NextRequest) {
         })
       }
     } catch (error) {
-      // Always log token validation failures as they are critical
-      console.log('[Middleware] Token validation failed:', error instanceof Error ? error.message : 'Unknown error')
+      // Log token validation failures in development only
+      if (shouldLog) {
+        console.log('[Middleware] Token validation failed:', error instanceof Error ? error.message : 'Unknown error')
+      }
       isValidToken = false;
       
       // If token is invalid, clear the cookie and redirect to login (but only for protected routes)
       if (tokenFromCookie && isProtectedRoute) {
-        console.log('[Middleware] Clearing invalid token cookie and redirecting to login')
+        if (shouldLog) {
+          console.log('[Middleware] Clearing invalid token cookie and redirecting to login')
+        }
         const response = NextResponse.redirect(new URL('/login?error=token_expired', request.url));
         response.cookies.set('accessToken', '', { expires: new Date(0), path: '/' });
         response.cookies.set('refreshToken', '', { expires: new Date(0), path: '/' });
         return response;
       } else if (tokenFromCookie && !isProtectedRoute) {
         // Clear invalid cookies but don't redirect for public routes
-        console.log('[Middleware] Clearing invalid token cookie for public route')
+        if (shouldLog) {
+          console.log('[Middleware] Clearing invalid token cookie for public route')
+        }
         const response = NextResponse.next();
         response.cookies.set('accessToken', '', { expires: new Date(0), path: '/' });
         response.cookies.set('refreshToken', '', { expires: new Date(0), path: '/' });
@@ -92,9 +115,35 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If accessing protected route without valid token, redirect to login
+  // If accessing protected route without valid token
   if (isProtectedRoute && !isValidToken) {
-    console.log('[Middleware] Redirecting to login - no valid token for protected route')
+    if (shouldLog) {
+      console.log('[Middleware] No valid token for protected route:', pathname)
+    }
+    
+    // For API routes, return 401 instead of redirect
+    if (isProtectedApiRoute) {
+      console.log('[Middleware] Returning 401 for protected API route')
+      const response = NextResponse.json(
+        { 
+          success: false, 
+          error: { 
+            code: 'UNAUTHORIZED', 
+            message: 'Access token is required' 
+          } 
+        }, 
+        { status: 401 }
+      )
+      
+      // Clear invalid cookies
+      if (tokenFromCookie) {
+        response.cookies.delete('accessToken');
+        response.cookies.delete('refreshToken');
+      }
+      return response;
+    }
+    
+    // For page routes, redirect to login
     const url = new URL('/login', request.url);
     url.searchParams.set('from', pathname);
     
@@ -128,12 +177,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files
+     * - manifest.json, sw.js, workbox files, icons (PWA files)
+     * 
+     * Now includes API routes for authentication
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-|icon-).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-|icon-).*)',
   ],
 };

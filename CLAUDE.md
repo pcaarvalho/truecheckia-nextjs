@@ -27,6 +27,11 @@ node scripts/create-test-user.js       # Create test user in database
 node scripts/test-middleware.js        # Test JWT middleware
 node scripts/pre-deploy-validation.js  # Run pre-deployment checks
 npm run analyze                         # Analyze bundle size
+node e2e/run-tests.ts                  # Run e2e tests
+
+# Deployment
+NODE_OPTIONS='--max-old-space-size=8192' npm run build  # Build with increased memory
+npm run vercel-build                                    # Vercel production build
 ```
 
 ## High-Level Architecture

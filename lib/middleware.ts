@@ -110,8 +110,23 @@ export async function validateRequest<T>(
  * Authentication middleware for API routes
  */
 export async function authenticateRequest(request: NextRequest): Promise<{ userId: string; user: any }> {
+  // Get token from both cookies and authorization header
+  const tokenFromCookie = request.cookies.get('accessToken')?.value
   const authHeader = request.headers.get('authorization')
-  const token = extractTokenFromHeader(authHeader)
+  const tokenFromHeader = extractTokenFromHeader(authHeader)
+  
+  const token = tokenFromCookie || tokenFromHeader
+
+  console.log('[AuthenticateRequest] Token check:', {
+    hasTokenFromCookie: !!tokenFromCookie,
+    hasTokenFromHeader: !!tokenFromHeader,
+    hasAnyToken: !!token,
+    tokenLength: token?.length || 0,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    origin: request.headers.get('origin'),
+    url: request.url,
+    timestamp: new Date().toISOString()
+  })
 
   if (!token) {
     throw new AppError('Access token is required', 401, ERROR_CODES.UNAUTHORIZED)
@@ -119,12 +134,25 @@ export async function authenticateRequest(request: NextRequest): Promise<{ userI
 
   try {
     const payload = verifyAccessToken(token)
+    console.log('[AuthenticateRequest] Token validation successful:', {
+      userId: payload.userId,
+      email: payload.email,
+      role: payload.role,
+      plan: payload.plan
+    })
+    
     // In a real implementation, you might want to verify the user still exists in the database
     return { 
       userId: payload.userId,
       user: payload
     }
   } catch (error) {
+    console.error('[AuthenticateRequest] Token validation failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      tokenSource: tokenFromCookie ? 'cookie' : 'header',
+      tokenLength: token?.length || 0,
+      timestamp: new Date().toISOString()
+    })
     throw new AppError('Invalid or expired token', 401, ERROR_CODES.TOKEN_EXPIRED)
   }
 }

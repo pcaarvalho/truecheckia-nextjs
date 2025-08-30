@@ -4,12 +4,22 @@
   "name": "truecheckia",
   "build": {
     "env": {
-      "NODE_OPTIONS": "--max-old-space-size=8192"
-    }
+      "NODE_OPTIONS": "--max-old-space-size=16384"
+    },
+    "timeout": 900
   },
   "functions": {
     "app/api/**/*.ts": {
-      "maxDuration": 30
+      "maxDuration": 60,
+      "memory": 3008
+    },
+    "app/api/analysis/**/*.ts": {
+      "maxDuration": 120,
+      "memory": 3008
+    },
+    "app/api/stripe/**/*.ts": {
+      "maxDuration": 90,
+      "memory": 1024
     }
   },
   "crons": [
@@ -53,7 +63,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://www.truecheckia.com"
+          "value": "$VERCEL_URL"
         },
         {
           "key": "Access-Control-Allow-Methods",
@@ -65,7 +75,7 @@
         },
         {
           "key": "Cache-Control",
-          "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
@@ -122,5 +132,11 @@
   ],
   "regions": [
     "iad1"
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_ENV": "production"
+  },
+  "cleanUrls": true,
+  "trailingSlash": false
 }

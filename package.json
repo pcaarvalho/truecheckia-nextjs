@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' prisma generate && next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=16384' prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -12,7 +12,7 @@
     "analyze": "ANALYZE=true npm run build",
     "preview": "npm run build && npm run start",
     "postinstall": "prisma generate",
-    "vercel-build": "NODE_OPTIONS='--max-old-space-size=8192' prisma generate && prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=8192' next build"
+    "vercel-build": "NODE_OPTIONS='--max-old-space-size=16384' prisma generate && prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=16384' next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -79,6 +79,7 @@
   "devDependencies": {
     "@ducanh2912/next-pwa": "^10.2.8",
     "@next/bundle-analyzer": "^15.5.0",
+    "@playwright/test": "^1.55.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.5.0"
   },

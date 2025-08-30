@@ -77,12 +77,12 @@ async function refreshHandler(request: NextRequest): Promise<NextResponse> {
     // Set secure httpOnly cookies
     response.cookies.set('accessToken', tokens.accessToken, {
       ...cookieOptions,
-      maxAge: 15 * 60, // 15 minutes - match JWT expiration
+      maxAge: 30 * 60, // 30 minutes - match JWT expiration
     })
 
     response.cookies.set('refreshToken', tokens.refreshToken, {
       ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60, // 7 days - refresh token
+      maxAge: 30 * 24 * 60 * 60, // 30 days - refresh token
     })
 
     return response

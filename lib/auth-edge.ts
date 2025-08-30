@@ -8,7 +8,7 @@ import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from 'jose'
 // Environment variables with fallbacks
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-in-production'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30m'
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d'
 
 // Convert base64 secrets to Uint8Array for jose

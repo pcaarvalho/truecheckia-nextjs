@@ -2,107 +2,38 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { validateRequest, createResponse, withErrorHandler, handleOptions, authenticateRequest, AppError, ERROR_CODES } from '@/lib/middleware'
 import { analyzeTextSchema, type AnalyzeTextInput } from '@/lib/schemas'
+import { detectAIContent } from '@/lib/ai-detection'
 import { Plan } from '@prisma/client'
 
-// Enhanced analysis function with more sophisticated heuristics
+// Real AI analysis function using OpenAI integration
 async function analyzeText(text: string, language: string = 'pt'): Promise<any> {
-  const startTime = Date.now()
-  
-  // Simulate processing time based on text length
-  const processingDelay = Math.min(1000 + text.length * 2, 5000)
-  await new Promise(resolve => setTimeout(resolve, processingDelay))
-
-  // Enhanced analysis result
-  const wordCount = text.split(/\s+/).filter(word => word.length > 0).length
-  const charCount = text.length
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
-  
-  // More sophisticated scoring based on text characteristics
-  let aiScore = 0
-  const indicators = []
-  const suspiciousParts = []
-  
-  // Check for repetitive patterns
-  const words = text.toLowerCase().split(/\s+/)
-  const uniqueWords = new Set(words)
-  const vocabularyRatio = uniqueWords.size / words.length
-  
-  if (vocabularyRatio < 0.5) {
-    aiScore += 25
-    indicators.push({
-      type: 'repetitive_vocabulary',
-      description: 'High repetition in vocabulary suggests AI generation',
-      severity: 'medium',
-    })
-  }
-  
-  // Check sentence length consistency
-  const avgSentenceLength = sentences.reduce((sum, s) => sum + s.trim().length, 0) / sentences.length
-  const sentenceLengthVariance = sentences.reduce((sum, s) => {
-    const diff = s.trim().length - avgSentenceLength
-    return sum + (diff * diff)
-  }, 0) / sentences.length
-  
-  if (sentenceLengthVariance < 100 && sentences.length > 3) {
-    aiScore += 20
-    indicators.push({
-      type: 'uniform_sentence_length',
-      description: 'Uniform sentence lengths indicate potential AI generation',
-      severity: 'high',
-    })
-  }
-  
-  // Check for common AI patterns
-  const aiPhrases = [
-    'in conclusion', 'furthermore', 'moreover', 'additionally',
-    'it is important to note', 'it should be noted', 'overall'
-  ]
-  
-  const foundAiPhrases = aiPhrases.filter(phrase => 
-    text.toLowerCase().includes(phrase)
-  )
-  
-  if (foundAiPhrases.length > 2) {
-    aiScore += 15
-    indicators.push({
-      type: 'ai_common_phrases',
-      description: 'Contains common AI-generated phrases',
-      severity: 'medium',
-    })
-  }
-  
-  // Add randomness to simulate model uncertainty
-  aiScore += Math.random() * 30 - 15
-  aiScore = Math.max(0, Math.min(100, aiScore))
-  
-  const confidence = aiScore > 80 ? 'HIGH' : aiScore > 50 ? 'MEDIUM' : 'LOW'
-  const isAiGenerated = aiScore > 70
-  
-  // Find suspicious parts
-  if (foundAiPhrases.length > 0) {
-    suspiciousParts.push({
-      text: foundAiPhrases[0],
-      score: Math.min(aiScore + 10, 100),
-      reason: 'Common AI-generated phrase detected',
-    })
-  }
-  
-  const explanation = `Analysis completed with ${Math.round(aiScore)}% AI probability. ${
-    indicators.length > 0 
-      ? `Detected ${indicators.length} indicator(s) of potential AI generation including ${indicators[0].description.toLowerCase()}.`
-      : 'No strong indicators of AI generation found.'
-  } The text contains ${wordCount} words across ${sentences.length} sentences with ${language === 'pt' ? 'Portuguese' : 'English'} characteristics.`
-
-  return {
-    aiScore: Math.round(aiScore * 100) / 100, // Round to 2 decimal places
-    confidence,
-    isAiGenerated,
-    indicators,
-    explanation,
-    suspiciousParts,
-    processingTime: Date.now() - startTime,
-    wordCount,
-    charCount,
+  try {
+    // Use the real AI detection from lib/ai-detection.ts
+    const result = await detectAIContent(text, language)
+    return result
+  } catch (error) {
+    console.error('[AI Analysis] Failed to analyze text:', error)
+    
+    // Fallback to basic statistical analysis if OpenAI fails
+    const startTime = Date.now()
+    const wordCount = text.split(/\s+/).filter(word => word.length > 0).length
+    const charCount = text.length
+    
+    return {
+      aiScore: 50, // Default neutral score
+      confidence: 'LOW',
+      isAiGenerated: false,
+      indicators: [{
+        type: 'fallback_analysis',
+        description: 'Analysis completed with basic statistical methods due to API limitations',
+        severity: 'low'
+      }],
+      explanation: 'Analysis completed using fallback statistical methods. For more accurate results, please ensure OpenAI API is properly configured.',
+      suspiciousParts: [],
+      processingTime: Date.now() - startTime,
+      wordCount,
+      charCount,
+    }
   }
 }
 
@@ -134,8 +65,20 @@ async function checkAndResetCredits(user: { id: string; credits: number; plan: P
 }
 
 async function createAnalysisHandler(request: NextRequest): Promise<NextResponse> {
+  console.log('[Analysis API] Starting analysis request:', {
+    url: request.url,
+    method: request.method,
+    hasAuthHeader: !!request.headers.get('authorization'),
+    hasCookie: !!request.cookies.get('accessToken'),
+    userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    origin: request.headers.get('origin'),
+    timestamp: new Date().toISOString()
+  })
+  
   // Authenticate user
   const { userId } = await authenticateRequest(request)
+  
+  console.log('[Analysis API] Authentication successful for user:', userId)
 
   // Validate request body
   const data = await validateRequest(request, analyzeTextSchema)
@@ -163,7 +106,7 @@ async function createAnalysisHandler(request: NextRequest): Promise<NextResponse
     throw new AppError('Insufficient credits. Please upgrade your plan.', 402, ERROR_CODES.INSUFFICIENT_CREDITS)
   }
 
-  // Perform analysis
+  // Perform real AI analysis with OpenAI integration
   const analysisResult = await analyzeText(text, language)
 
   // Save analysis to database and deduct credit
@@ -214,8 +157,18 @@ async function createAnalysisHandler(request: NextRequest): Promise<NextResponse
 }
 
 async function getAnalysisHistoryHandler(request: NextRequest): Promise<NextResponse> {
+  console.log('[Analysis History API] Starting request:', {
+    url: request.url,
+    method: request.method,
+    hasAuthHeader: !!request.headers.get('authorization'),
+    hasCookie: !!request.cookies.get('accessToken'),
+    timestamp: new Date().toISOString()
+  })
+  
   // Authenticate user
   const { userId } = await authenticateRequest(request)
+  
+  console.log('[Analysis History API] Authentication successful for user:', userId)
 
   // Get query parameters for pagination
   const url = new URL(request.url)
