@@ -11,8 +11,8 @@
     "type-check": "tsc --noEmit",
     "analyze": "ANALYZE=true npm run build",
     "preview": "npm run build && npm run start",
-    "postinstall": "prisma generate",
-    "vercel-build": "NODE_OPTIONS='--max-old-space-size=16384' prisma generate && prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=16384' next build"
+    "postinstall": "prisma generate --no-engine",
+    "vercel-build": "NODE_OPTIONS='--max-old-space-size=16384' npx prisma generate && NODE_OPTIONS='--max-old-space-size=16384' next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
